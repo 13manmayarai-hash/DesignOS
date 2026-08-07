@@ -4,17 +4,25 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { property } from "@/lib/property-config";
 
-const NAV_LINKS = [
+const BASE_NAV_LINKS = [
   { href: "#rooms", label: "Rooms" },
   { href: "#host", label: "Host" },
   { href: "#garden", label: "Garden" },
-  { href: "#nearby", label: "Nearby" },
 ];
+
+const GALLERY_LINK = { href: "#gallery", label: "Gallery" };
+
+const TAIL_NAV_LINKS = [{ href: "#nearby", label: "Nearby" }];
 
 // Transparent over the hero, solid once scrolled past it -- a persistent
 // nav reads as more considered than the single absolute bar it replaces.
-export function SiteHeader() {
+export function SiteHeader({ showGallery = false }: { showGallery?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
+  const navLinks = [
+    ...BASE_NAV_LINKS,
+    ...(showGallery ? [GALLERY_LINK] : []),
+    ...TAIL_NAV_LINKS,
+  ];
 
   useEffect(() => {
     const threshold = () => Math.min(window.innerHeight * 0.75, 640);
@@ -47,7 +55,7 @@ export function SiteHeader() {
             scrolled ? "text-text-secondary" : "text-warm-white/80"
           }`}
         >
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}

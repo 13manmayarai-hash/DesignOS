@@ -18,7 +18,7 @@ export function PracticalDetailsSection() {
       <div className="mx-auto max-w-6xl">
         <Reveal>
           <SectionHeading
-            index="04"
+            index="05"
             eyebrow="Practical details"
             title="Good to know before you arrive."
           />

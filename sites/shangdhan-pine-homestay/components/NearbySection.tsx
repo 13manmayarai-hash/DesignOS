@@ -9,7 +9,7 @@ export function NearbySection() {
         <Reveal>
           <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3">
             <SectionHeading
-              index="03"
+              index="04"
               eyebrow="Nearby"
               title={
                 <>
