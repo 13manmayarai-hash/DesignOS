@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 // pill buttons were reading as generic app/SaaS. `tone` picks the outline
 // variant's border/text so it stays legible on both dark and light sections.
 const base =
-  "inline-flex items-center justify-center gap-2 px-8 py-3.5 text-xs font-medium uppercase tracking-[0.18em] transition-colors duration-[180ms] ease-out";
+  "inline-flex items-center justify-center gap-2 px-8 py-3.5 text-xs font-medium uppercase tracking-[0.18em] transition-[color,background-color,border-color,transform] duration-[180ms] ease-out hover:-translate-y-0.5";
 
 const variants = {
   primary: "bg-gold text-charcoal hover:bg-gold-soft",

@@ -24,23 +24,22 @@ export function PracticalDetailsSection() {
           />
         </Reveal>
 
-        <Reveal
-          delay={0.08}
-          className="mt-14 grid gap-x-10 gap-y-10 sm:grid-cols-3"
-        >
-          {specs.map((spec) => (
-            <div key={spec.label} className="border-t border-border-default pt-5">
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-text-secondary">
-                {spec.label}
-              </p>
-              <p className="mt-2 font-display text-2xl text-text-primary">
-                {spec.value}
-              </p>
-            </div>
+        <div className="mt-14 grid gap-x-10 gap-y-10 sm:grid-cols-3">
+          {specs.map((spec, i) => (
+            <Reveal key={spec.label} delay={0.08 + i * 0.08}>
+              <div className="border-t border-border-default pt-5">
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-text-secondary">
+                  {spec.label}
+                </p>
+                <p className="mt-2 font-display text-2xl text-text-primary">
+                  {spec.value}
+                </p>
+              </div>
+            </Reveal>
           ))}
-        </Reveal>
+        </div>
 
-        <Reveal delay={0.12}>
+        <Reveal delay={0.12 + specs.length * 0.08}>
           <p className="mt-10 text-xs leading-relaxed text-text-secondary">
             {practicalDetails.checkInOutFlag}
           </p>

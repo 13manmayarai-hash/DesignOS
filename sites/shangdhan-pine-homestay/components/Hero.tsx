@@ -1,4 +1,5 @@
 import { Button } from "@/components/Button";
+import { HeroScene } from "@/components/HeroScene";
 
 // Full-bleed stylized sunrise, built as layered gradients + an SVG ridge
 // silhouette rather than a stand-in photo -- the archive's clear-season
@@ -16,7 +17,7 @@ export function Hero() {
         aria-hidden
       />
       <div
-        className="absolute inset-x-0 bottom-0 h-1/2"
+        className="absolute inset-x-0 bottom-0 h-1/2 animate-[hero-glow_10s_ease-in-out_infinite]"
         style={{
           background:
             "radial-gradient(60% 140% at 50% 100%, rgba(255,215,140,0.55) 0%, rgba(255,215,140,0) 70%)",
@@ -32,29 +33,14 @@ export function Hero() {
         }}
         aria-hidden
       />
-      <svg
-        className="absolute inset-x-0 bottom-0 h-[45%] w-full"
-        viewBox="0 0 1440 400"
-        preserveAspectRatio="none"
-        aria-hidden
-      >
-        <path
-          d="M0 400 L0 260 L180 160 L340 240 L520 120 L680 220 L860 90 L1040 210 L1220 140 L1440 250 L1440 400 Z"
-          fill="#241b2e"
-          opacity="0.55"
-        />
-        <path
-          d="M0 400 L0 320 L220 230 L420 300 L640 190 L820 290 L1020 180 L1220 280 L1440 210 L1440 400 Z"
-          fill="#1a1420"
-        />
-      </svg>
+      <HeroScene />
 
       <div className="relative z-10 mx-auto w-full max-w-6xl px-6 pb-20 pt-40 sm:px-10 sm:pb-28">
         <p className="mb-5 text-xs font-medium uppercase tracking-[0.28em] text-gold-soft">
           Lower Kaffer &middot; Kalimpong District
         </p>
         <h1 className="max-w-3xl font-display text-5xl leading-[1.04] tracking-[-0.01em] text-warm-white sm:text-7xl">
-          Wake to Kanchenjunga turning to molten gold.
+          Wake to Kanchenjunga turning to <em className="italic">molten gold</em>.
         </h1>
         <p className="mt-7 max-w-xl text-base leading-relaxed text-warm-white/80 sm:text-lg">
           Best seen February through March, from a homestay built by an

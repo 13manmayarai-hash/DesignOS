@@ -10,7 +10,11 @@ export function RoomsSection() {
           <SectionHeading
             index="01"
             eyebrow="Rooms"
-            title="Every room faces the mountain."
+            title={
+              <>
+                Every room faces the <em className="italic">mountain</em>.
+              </>
+            }
           />
           <p className="mt-6 max-w-md text-base leading-relaxed text-text-secondary sm:text-lg">
             Each room opens onto a private balcony facing the mountain, with
@@ -18,27 +22,28 @@ export function RoomsSection() {
           </p>
         </Reveal>
 
-        <Reveal delay={0.08}>
+        <div>
           <div className="divide-y divide-border-default border-y border-border-default">
             {rooms.sharedAmenities.map((amenity, i) => (
-              <div
-                key={amenity}
-                className="flex items-baseline gap-5 py-5 sm:gap-6"
-              >
-                <span className="font-display text-sm italic text-gold-ink">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span className="text-sm text-text-primary sm:text-base">
-                  {amenity}
-                </span>
-              </div>
+              <Reveal key={amenity} delay={0.08 + i * 0.08}>
+                <div className="flex items-baseline gap-5 py-5 sm:gap-6">
+                  <span className="font-display text-sm italic text-gold-ink">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span className="text-sm text-text-primary sm:text-base">
+                    {amenity}
+                  </span>
+                </div>
+              </Reveal>
             ))}
           </div>
 
-          <div className="mt-8 border border-dashed border-sand-dark bg-warm-white/60 px-5 py-4 text-sm text-text-secondary">
-            {rooms.note}
-          </div>
-        </Reveal>
+          <Reveal delay={0.08 + rooms.sharedAmenities.length * 0.08}>
+            <div className="mt-8 border border-dashed border-sand-dark bg-warm-white/60 px-5 py-4 text-sm text-text-secondary">
+              {rooms.note}
+            </div>
+          </Reveal>
+        </div>
       </div>
     </section>
   );

@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 export function SectionHeading({
   index,
   eyebrow,
@@ -8,7 +10,7 @@ export function SectionHeading({
 }: {
   index?: string;
   eyebrow?: string;
-  title: string;
+  title: ReactNode;
   dark?: boolean;
   center?: boolean;
   className?: string;

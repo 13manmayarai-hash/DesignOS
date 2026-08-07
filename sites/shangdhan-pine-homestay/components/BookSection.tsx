@@ -25,9 +25,15 @@ export function BookSection() {
               href={link}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 bg-gold px-9 py-4 text-xs font-medium uppercase tracking-[0.18em] text-charcoal transition-colors duration-[180ms] ease-out hover:bg-gold-soft"
+              className="group inline-flex items-center justify-center gap-2 bg-gold px-9 py-4 text-xs font-medium uppercase tracking-[0.18em] text-charcoal transition-colors duration-[180ms] ease-out hover:bg-gold-soft"
             >
               Message on WhatsApp
+              <span
+                className="inline-block transition-transform duration-[180ms] ease-out group-hover:translate-x-1"
+                aria-hidden
+              >
+                &rarr;
+              </span>
             </a>
           ) : (
             <p className="text-sm text-warm-white/60">

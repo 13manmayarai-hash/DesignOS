@@ -51,11 +51,15 @@ export function SiteHeader() {
             <Link
               key={link.href}
               href={link.href}
-              className={`transition-colors duration-[180ms] ease-out ${
+              className={`group relative pb-1 transition-colors duration-[180ms] ease-out ${
                 scrolled ? "hover:text-text-primary" : "hover:text-warm-white"
               }`}
             >
               {link.label}
+              <span
+                className="absolute inset-x-0 -bottom-0.5 h-px origin-left scale-x-0 bg-current transition-transform duration-[240ms] ease-out group-hover:scale-x-100"
+                aria-hidden
+              />
             </Link>
           ))}
         </nav>
