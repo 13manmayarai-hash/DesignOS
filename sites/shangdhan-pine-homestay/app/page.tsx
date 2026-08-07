@@ -13,10 +13,8 @@ import { StickyBookingBar } from "@/components/StickyBookingBar";
 export default function Home() {
   return (
     <>
-      <div className="relative">
-        <SiteHeader />
-        <Hero />
-      </div>
+      <SiteHeader />
+      <Hero />
       <main className="flex-1 pb-16 sm:pb-0">
         <SunriseSection />
         <RoomsSection />

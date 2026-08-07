@@ -4,10 +4,14 @@ import { SunriseWidget } from "@/components/SunriseWidget";
 
 export function SunriseSection() {
   return (
-    <section id="sunrise" className="bg-warm-white px-6 py-20 sm:px-10 sm:py-28">
-      <div className="mx-auto grid max-w-5xl gap-10 sm:grid-cols-2 sm:items-center sm:gap-16">
+    <section id="sunrise" className="bg-warm-white px-6 py-24 sm:px-10 sm:py-36">
+      <div className="mx-auto grid max-w-6xl gap-10 sm:grid-cols-2 sm:items-center sm:gap-16">
         <Reveal>
-          <SectionHeading eyebrow="The one thing this site sells" title="Some mornings, the mountain turns to gold." />
+          <SectionHeading
+            index="00"
+            eyebrow="The one thing this site sells"
+            title="Some mornings, the mountain turns to gold."
+          />
           <p className="mt-5 text-base leading-relaxed text-text-secondary sm:text-lg">
             Watch it happen from your own balcony, or from the garden with a
             cup of tea in hand.

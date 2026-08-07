@@ -3,44 +3,45 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { practicalDetails } from "@/lib/property-config";
 
 export function PracticalDetailsSection() {
+  const specs = [
+    { label: "Parking", value: practicalDetails.parking },
+    { label: "Check-in", value: practicalDetails.checkIn },
+    { label: "Check-out", value: practicalDetails.checkOut },
+    ...practicalDetails.airports.map((airport) => ({
+      label: airport.note,
+      value: `${airport.name}, ~${airport.distanceKm} km`,
+    })),
+  ];
+
   return (
-    <section id="practical" className="bg-surface px-6 py-20 sm:px-10 sm:py-28">
-      <div className="mx-auto max-w-3xl">
+    <section id="practical" className="bg-surface px-6 py-24 sm:px-10 sm:py-36">
+      <div className="mx-auto max-w-6xl">
         <Reveal>
-          <SectionHeading eyebrow="Practical details" title="Good to know before you arrive." />
+          <SectionHeading
+            index="04"
+            eyebrow="Practical details"
+            title="Good to know before you arrive."
+          />
         </Reveal>
 
-        <Reveal delay={0.08} className="mt-10 divide-y divide-border-default rounded-2xl border border-border-default">
-          <div className="flex items-center justify-between px-6 py-4">
-            <span className="text-sm text-text-secondary">Parking</span>
-            <span className="text-sm font-medium text-text-primary">
-              {practicalDetails.parking}
-            </span>
-          </div>
-          <div className="flex items-center justify-between px-6 py-4">
-            <span className="text-sm text-text-secondary">Check-in</span>
-            <span className="text-sm font-medium text-text-primary">
-              {practicalDetails.checkIn}
-            </span>
-          </div>
-          <div className="flex items-center justify-between px-6 py-4">
-            <span className="text-sm text-text-secondary">Check-out</span>
-            <span className="text-sm font-medium text-text-primary">
-              {practicalDetails.checkOut}
-            </span>
-          </div>
-          {practicalDetails.airports.map((airport) => (
-            <div key={airport.name} className="flex items-center justify-between px-6 py-4">
-              <span className="text-sm text-text-secondary">{airport.note}</span>
-              <span className="text-sm font-medium text-text-primary">
-                {airport.name}, ~{airport.distanceKm} km
-              </span>
+        <Reveal
+          delay={0.08}
+          className="mt-14 grid gap-x-10 gap-y-10 sm:grid-cols-3"
+        >
+          {specs.map((spec) => (
+            <div key={spec.label} className="border-t border-border-default pt-5">
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-text-secondary">
+                {spec.label}
+              </p>
+              <p className="mt-2 font-display text-2xl text-text-primary">
+                {spec.value}
+              </p>
             </div>
           ))}
         </Reveal>
 
         <Reveal delay={0.12}>
-          <p className="mt-6 text-xs leading-relaxed text-text-secondary">
+          <p className="mt-10 text-xs leading-relaxed text-text-secondary">
             {practicalDetails.checkInOutFlag}
           </p>
         </Reveal>

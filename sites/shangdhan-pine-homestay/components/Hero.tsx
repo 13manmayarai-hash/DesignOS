@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Button } from "@/components/Button";
 
 // Full-bleed stylized sunrise, built as layered gradients + an SVG ridge
 // silhouette rather than a stand-in photo -- the archive's clear-season
@@ -23,6 +23,15 @@ export function Hero() {
         }}
         aria-hidden
       />
+      {/* Top vignette keeps the nav legible over the brightest part of the gradient */}
+      <div
+        className="absolute inset-x-0 top-0 h-40"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(15,12,20,0.35) 0%, rgba(15,12,20,0) 100%)",
+        }}
+        aria-hidden
+      />
       <svg
         className="absolute inset-x-0 bottom-0 h-[45%] w-full"
         viewBox="0 0 1440 400"
@@ -40,28 +49,36 @@ export function Hero() {
         />
       </svg>
 
-      <div className="relative z-10 mx-auto w-full max-w-5xl px-6 pb-16 pt-40 sm:px-10 sm:pb-24">
-        <h1 className="max-w-2xl font-display text-4xl leading-[1.1] text-warm-white sm:text-6xl">
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-6 pb-20 pt-40 sm:px-10 sm:pb-28">
+        <p className="mb-5 text-xs font-medium uppercase tracking-[0.28em] text-gold-soft">
+          Lower Kaffer &middot; Kalimpong District
+        </p>
+        <h1 className="max-w-3xl font-display text-5xl leading-[1.04] tracking-[-0.01em] text-warm-white sm:text-7xl">
           Wake to Kanchenjunga turning to molten gold.
         </h1>
-        <p className="mt-6 max-w-xl text-base leading-relaxed text-warm-white/85 sm:text-lg">
-          Best seen February through March, from a homestay in Lower Kaffer
-          built by an engineer who traded structures for mornings like this
-          one.
+        <p className="mt-7 max-w-xl text-base leading-relaxed text-warm-white/80 sm:text-lg">
+          Best seen February through March, from a homestay built by an
+          engineer who traded structures for mornings like this one.
         </p>
-        <div className="mt-9 flex flex-wrap gap-4">
-          <Link
-            href="#rooms"
-            className="rounded-full bg-gold px-7 py-3 font-sans text-sm font-medium text-charcoal transition-colors duration-[180ms] ease-out hover:bg-gold-soft"
-          >
+        <div className="mt-10 flex flex-wrap gap-4">
+          <Button href="#rooms" variant="primary">
             See the Rooms
-          </Link>
-          <Link
-            href="#book"
-            className="rounded-full border border-warm-white/40 px-7 py-3 font-sans text-sm font-medium text-warm-white transition-colors duration-[180ms] ease-out hover:bg-warm-white/10"
-          >
+          </Button>
+          <Button href="#book" variant="outlineDark">
             Check Availability
-          </Link>
+          </Button>
+        </div>
+      </div>
+
+      <div
+        className="absolute inset-x-0 bottom-6 z-10 hidden justify-center sm:flex"
+        aria-hidden
+      >
+        <div className="flex flex-col items-center gap-2 text-warm-white/50">
+          <span className="text-[10px] font-medium uppercase tracking-[0.3em]">
+            Scroll
+          </span>
+          <span className="h-8 w-px bg-gradient-to-b from-warm-white/60 to-transparent" />
         </div>
       </div>
     </section>

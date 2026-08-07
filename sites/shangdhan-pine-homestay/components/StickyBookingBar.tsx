@@ -16,7 +16,7 @@ export function StickyBookingBar() {
         href={link}
         target="_blank"
         rel="noopener noreferrer"
-        className="block w-full rounded-full bg-forest px-6 py-3 text-center font-sans text-sm font-medium text-warm-white"
+        className="block w-full bg-forest px-6 py-3.5 text-center text-xs font-medium uppercase tracking-[0.18em] text-warm-white"
       >
         Check Availability on WhatsApp
       </a>
