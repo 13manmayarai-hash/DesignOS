@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens sourced from DesignOS:
+ * Book 06 (Color Systems) -- palette fixed by the build brief, not regenerated.
+ * Book 05 (Typography Bible) -- serif display + sans UI pairing, type scale.
+ * Book 04 (Motion System) -- duration / easing / spring / stagger values.
+ * Values are referenced by name throughout; never hard-code a raw value
+ * in a component.
+ */
+
+:root {
+  /* Book 06 Ch3/11 -- brand + neutral palette (warm white, sand, forest, charcoal, stone, gold accent) */
+  --color-warm-white: #fbf7f1;
+  --color-sand: #e8dcc8;
+  --color-sand-dark: #d8c9ab;
+  --color-forest: #2f4a3c;
+  --color-forest-dark: #1f332a;
+  --color-charcoal: #262220;
+  --color-stone: #6b6259; /* Book 19 requires WCAG AA (4.5:1) for body text; a lighter "stone" only cleared ~3.7:1 on white */
+  --color-gold: #c9a24b;
+  --color-gold-soft: #e3c073;
+  /* Text-safe gold: the accent above is ~2.4:1 on light backgrounds, well
+     short of Book 19's WCAG AA floor. Use this for gold labels/copy on
+     warm-white or white; keep --color-gold for fills (buttons, dividers)
+     where the pairing is with charcoal text, not the background itself. */
+  --color-gold-ink: #8a6423;
+
+  /* Semantic tokens, Book 06 Ch11 -- reference these, not raw colors */
+  --color-background: var(--color-warm-white);
+  --color-surface: #ffffff;
+  --color-border-default: var(--color-sand);
+  --color-text-primary: var(--color-charcoal);
+  --color-text-secondary: var(--color-stone);
+  --color-action-primary: var(--color-forest);
+  --color-action-accent: var(--color-gold);
+
+  /* Book 04 Ch3 -- duration tokens */
+  --motion-duration-micro: 120ms;
+  --motion-duration-fast: 180ms;
+  --motion-duration-base: 240ms;
+  --motion-duration-slow: 360ms;
+  --motion-duration-section: 720ms;
+  --motion-duration-cinematic: 1200ms;
+
+  /* Book 04 Ch4 -- easing tokens */
+  --motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --motion-ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Book 04 Ch6 -- stagger tokens */
+  --motion-stagger-tight: 0.04s;
+  --motion-stagger-base: 0.08s;
+  --motion-stagger-loose: 0.12s;
+}
+
+@theme inline {
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-warm-white: var(--color-warm-white);
+  --color-sand: var(--color-sand);
+  --color-sand-dark: var(--color-sand-dark);
+  --color-forest: var(--color-forest);
+  --color-forest-dark: var(--color-forest-dark);
+  --color-charcoal: var(--color-charcoal);
+  --color-stone: var(--color-stone);
+  --color-gold: var(--color-gold);
+  --color-gold-soft: var(--color-gold-soft);
+  --color-gold-ink: var(--color-gold-ink);
+  --color-border-default: var(--color-border-default);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-action-primary: var(--color-action-primary);
+  --color-action-accent: var(--color-action-accent);
+
+  --font-display: var(--font-cormorant), Georgia, serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: var(--color-gold-soft);
+  color: var(--color-charcoal);
+}
