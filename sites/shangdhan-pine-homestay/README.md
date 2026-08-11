@@ -34,9 +34,9 @@ To turn it on:
    **anon public** key.
 4. Set both as environment variables:
    - Locally: copy `.env.example` to `.env.local` and fill them in.
-   - On Netlify: **Site configuration -> Environment variables**, add
-     `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`, then
-     redeploy.
+   - On your deploy host (e.g. Vercel: **Project -> Settings ->
+     Environment Variables**), add `NEXT_PUBLIC_SUPABASE_URL` and
+     `NEXT_PUBLIC_SUPABASE_ANON_KEY`, then redeploy.
 5. Create the owner's login: Supabase dashboard -> **Authentication ->
    Users -> Add user** (email + password, auto-confirm). Every logged-in
    account has full admin access, so only ever create this one login for
@@ -75,6 +75,35 @@ There's currently no admin UI for viewing submitted bookings or managing
 `activities` -- they're in the database (viewable via Supabase's Table
 Editor) but not yet surfaced in `/admin`.
 
+### Guest confirmation emails
+
+If a guest enters an email address, `/book` can send them a confirmation
+automatically via [Resend](https://resend.com). Without it, everything
+else still works exactly the same -- guests just won't get an email.
+
+1. Create a free Resend account at [resend.com](https://resend.com).
+2. **API Keys -> Create API Key**, copy it.
+3. Set `RESEND_API_KEY` as an environment variable (same places as the
+   Supabase keys above: `.env.local` locally, your host's environment
+   variables for the deployed site).
+
+That's it to start -- emails send from Resend's shared sandbox address
+(`onboarding@resend.dev`), which works immediately with no domain setup,
+though guests will see "via resend.dev" in some mail clients. To send
+from your own address instead:
+
+4. In Resend, **Domains -> Add Domain**, add the DNS records it gives you
+   at your domain registrar, and wait for verification (usually
+   minutes, occasionally longer).
+5. Update `bookingEmailFrom` in `lib/property-config.ts` to an address on
+   that domain, e.g. `"Shangdhan Pine Homestay <bookings@yourdomain.com>"`.
+
+SMS and automated WhatsApp guest confirmations aren't built -- both need
+their own separate paid services (an SMS gateway with DLT/TRAI sender
+registration for India; the WhatsApp Business Cloud API with Meta
+Business verification for WhatsApp) that are more involved to set up
+than a straightforward addition to the codebase.
+
 ## Structure
 
 - `lib/property-config.ts` -- facts still marked open in the brief
@@ -90,8 +119,10 @@ Editor) but not yet surfaced in `/admin`.
   "Backend setup" above.
 - `app/admin/` -- the owner-facing admin panel (rooms + gallery
   management), gated by `proxy.ts` and Supabase Auth.
-- `app/book/`, `lib/gst.ts` -- the direct-booking flow and Indian
-  hospitality GST tax math. See "Booking" above.
+- `app/book/`, `lib/gst.ts`, `lib/dates.ts` -- the direct-booking flow and
+  Indian hospitality GST tax math. See "Booking" above.
+- `lib/email.ts` -- booking confirmation emails via Resend. See "Guest
+  confirmation emails" above.
 
 ## Before launch
 

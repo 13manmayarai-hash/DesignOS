@@ -28,6 +28,13 @@ export const upiPayeeName = property.name;
 // leave false unless the owner confirms otherwise.
 export const isGstCompliant = false;
 
+// Sender address for booking confirmation emails (see lib/email.ts). Resend's
+// shared sandbox address works immediately with no domain setup -- swap in
+// a real address on your own verified domain (e.g. "bookings@yourdomain.com")
+// once you've added and verified one in Resend, so guests see your name
+// instead of Resend's in their inbox.
+export const bookingEmailFrom = `${property.name} <onboarding@resend.dev>`;
+
 // FLAG: noon check-in *and* check-out is unusual and unverified -- likely a
 // listing error. Kept as a single config value so correcting it is a
 // one-line change, not a layout change.

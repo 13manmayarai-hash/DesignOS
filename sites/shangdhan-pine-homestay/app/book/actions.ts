@@ -3,8 +3,12 @@
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { createBooking, type CreateBookingInput } from "@/lib/data/bookings";
 import { randomStoragePath } from "@/lib/storage";
+import { nightsBetween } from "@/lib/dates";
+import { sendBookingConfirmationEmail } from "@/lib/email";
 
-export type SubmitBookingResult = { ok: true; bookingId: string } | { ok: false; error: string };
+export type SubmitBookingResult =
+  | { ok: true; bookingId: string; emailSent: boolean }
+  | { ok: false; error: string };
 
 // No auth required -- guests never log in. RLS (see supabase/schema.sql)
 // only grants INSERT to the anon role on these tables, never SELECT, so a
@@ -65,7 +69,30 @@ export async function submitBookingAction(formData: FormData): Promise<SubmitBoo
     }
 
     const booking = await createBooking(supabase, input);
-    return { ok: true, bookingId: booking.id };
+
+    // Best-effort: a failed confirmation email should never fail the
+    // booking itself, which is already safely recorded at this point.
+    let emailSent = false;
+    if (input.guestEmail) {
+      try {
+        const result = await sendBookingConfirmationEmail({
+          bookingId: booking.id,
+          guestName: input.guestName,
+          guestEmail: input.guestEmail,
+          checkIn: input.checkIn,
+          checkOut: input.checkOut,
+          nights: nightsBetween(input.checkIn, input.checkOut),
+          roomSelections: input.roomSelections,
+          activitySelections: input.activitySelections,
+          totalAmount: input.totalAmount,
+        });
+        emailSent = result.sent;
+      } catch (emailError) {
+        console.error("Booking confirmation email failed", emailError);
+      }
+    }
+
+    return { ok: true, bookingId: booking.id, emailSent };
   } catch (error) {
     console.error("submitBookingAction failed", error);
     return { ok: false, error: "Something went wrong submitting the booking. Please try again." };

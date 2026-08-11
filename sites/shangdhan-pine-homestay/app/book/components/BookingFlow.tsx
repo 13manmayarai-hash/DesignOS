@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import type { Room } from "@/lib/data/rooms";
 import type { Activity } from "@/lib/data/activities";
 import { calculateHospitalityGst, GST_STATE_OPTIONS, PROPERTY_GST_STATE_CODE } from "@/lib/gst";
+import { nightsBetween } from "@/lib/dates";
 import { property, upiId, upiPayeeName, isGstCompliant, whatsappLink } from "@/lib/property-config";
 import { submitBookingAction } from "../actions";
 
@@ -14,13 +15,6 @@ const STEPS = ["Trip & guests", "Compliance", "Payment"] as const;
 const inputClass =
   "mt-1.5 w-full border border-border-default bg-warm-white px-3.5 py-2.5 text-sm text-text-primary outline-none focus:border-gold-ink";
 const labelClass = "block text-xs font-medium uppercase tracking-[0.1em] text-text-secondary";
-
-function nightsBetween(checkIn: string, checkOut: string) {
-  if (!checkIn || !checkOut) return 1;
-  const ms = new Date(checkOut).getTime() - new Date(checkIn).getTime();
-  const nights = Math.round(ms / (1000 * 60 * 60 * 24));
-  return nights > 0 ? nights : 1;
-}
 
 export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: Activity[] }) {
   const bookableRooms = rooms.filter((r) => r.rent_amount !== null);
@@ -47,6 +41,7 @@ export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmedBookingId, setConfirmedBookingId] = useState<string | null>(null);
+  const [confirmationEmailSent, setConfirmationEmailSent] = useState(false);
   const [whatsappOpened, setWhatsappOpened] = useState(false);
 
   const isForeign = nationality !== "Indian";
@@ -169,6 +164,7 @@ export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: 
     }
 
     setConfirmedBookingId(res.bookingId);
+    setConfirmationEmailSent(res.emailSent);
   }
 
   if (confirmedBookingId) {
@@ -200,6 +196,13 @@ export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: 
             The host will confirm your dates once they&apos;ve verified the UPI payment against
             the transaction reference you provided.
           </p>
+          {guestEmail ? (
+            <p className="mt-3">
+              {confirmationEmailSent
+                ? `A copy of this confirmation was emailed to ${guestEmail}.`
+                : `We couldn't send a confirmation email to ${guestEmail} -- the details above are what matters.`}
+            </p>
+          ) : null}
         </div>
 
         <Link
