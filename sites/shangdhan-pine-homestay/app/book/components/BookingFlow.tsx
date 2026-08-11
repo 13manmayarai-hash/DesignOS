@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import QRCode from "qrcode";
 import type { Room } from "@/lib/data/rooms";
 import type { Activity } from "@/lib/data/activities";
@@ -44,7 +45,9 @@ export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: 
   const [utrNumber, setUtrNumber] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmedBookingId, setConfirmedBookingId] = useState<string | null>(null);
+  const [whatsappOpened, setWhatsappOpened] = useState(false);
 
   const isForeign = nationality !== "Indian";
   const nights = nightsBetween(checkIn, checkOut);
@@ -101,7 +104,15 @@ export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: 
 
   async function handleConfirm() {
     setSubmitting(true);
-    setResult(null);
+    setError(null);
+
+    // Open the tab synchronously, on the click itself, before any `await`.
+    // Opening it *after* an await is what browsers block as a popup, since
+    // it's no longer inside the direct user-gesture window -- that's the
+    // most likely reason this looked "stuck" with nothing happening. Can't
+    // use noopener here: it makes the returned window reference null, and
+    // we need that reference to navigate the tab once the booking is saved.
+    const whatsappTab = window.open("", "_blank");
 
     const formData = new FormData();
     formData.set("guestName", guestName);
@@ -128,11 +139,10 @@ export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: 
     setSubmitting(false);
 
     if (!res.ok) {
-      setResult({ ok: false, message: res.error });
+      whatsappTab?.close();
+      setError(res.error);
       return;
     }
-
-    setResult({ ok: true, message: "Booking recorded. Opening WhatsApp to confirm with the host..." });
 
     const roomsSummary = roomSelections.map((r) => `${r.quantity}x ${r.roomName}`).join(", ");
     const activitiesSummary = activitySelections.map((a) => a.activityTitle).join(", ") || "None";
@@ -150,7 +160,56 @@ export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: 
     ].join("\n");
 
     const link = whatsappLink(message);
-    if (link) window.open(link, "_blank", "noopener,noreferrer");
+    if (link && whatsappTab) {
+      whatsappTab.location.href = link;
+      setWhatsappOpened(true);
+    } else {
+      whatsappTab?.close();
+      setWhatsappOpened(false);
+    }
+
+    setConfirmedBookingId(res.bookingId);
+  }
+
+  if (confirmedBookingId) {
+    return (
+      <div className="mx-auto max-w-xl px-6 py-16 text-center sm:px-10">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-forest/10 text-3xl text-forest">
+          &#10003;
+        </div>
+        <h1 className="mt-6 font-display text-3xl text-text-primary">Booking request sent.</h1>
+        <p className="mt-3 text-sm text-text-secondary">
+          Reference <span className="font-medium text-text-primary">#{confirmedBookingId.slice(0, 8).toUpperCase()}</span>{" "}
+          -- {checkIn} to {checkOut}, &#8377;{gst.total.toFixed(2)} total.
+        </p>
+
+        <div className="mt-8 border border-border-default bg-surface p-6 text-left text-sm text-text-secondary">
+          {whatsappOpened ? (
+            <p>
+              We opened WhatsApp in a new tab with your booking details filled in -- send that
+              message to confirm with the host. If the tab didn&apos;t open (some browsers block
+              it), message them directly instead.
+            </p>
+          ) : (
+            <p>
+              Your booking is saved, but we couldn&apos;t open WhatsApp automatically -- please
+              message the host directly to confirm your dates.
+            </p>
+          )}
+          <p className="mt-3">
+            The host will confirm your dates once they&apos;ve verified the UPI payment against
+            the transaction reference you provided.
+          </p>
+        </div>
+
+        <Link
+          href="/"
+          className="mt-8 inline-block border border-charcoal/25 px-6 py-3 text-xs font-medium uppercase tracking-[0.14em] text-text-primary hover:border-charcoal/50"
+        >
+          Back to homepage
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -475,9 +534,7 @@ export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: 
               />
             </div>
 
-            {result ? (
-              <p className={`text-sm ${result.ok ? "text-forest" : "text-red-700"}`}>{result.message}</p>
-            ) : null}
+            {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
             <div className="flex justify-between">
               <button
