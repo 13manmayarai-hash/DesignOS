@@ -73,6 +73,13 @@ alter table rooms enable row level security;
 alter table room_images enable row level security;
 alter table gallery_images enable row level security;
 
+-- RLS policies only filter rows within what a role is already granted at
+-- the table level -- they don't grant access themselves. Some Supabase
+-- projects don't provision these by default, so make it explicit.
+grant usage on schema public to anon, authenticated;
+grant select on rooms, room_images, gallery_images to anon, authenticated;
+grant insert, update, delete on rooms, room_images, gallery_images to authenticated;
+
 drop policy if exists "public can read published rooms" on rooms;
 create policy "public can read published rooms" on rooms
   for select using (published = true);
