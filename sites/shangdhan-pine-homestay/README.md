@@ -51,6 +51,30 @@ photo gallery shown on the homepage. Both take effect on the public site
 immediately -- no rebuild needed, since the site now renders rooms and
 gallery pages on the server per request rather than at build time.
 
+## Booking (`/book`)
+
+A direct-booking flow: guests pick rooms and activities, register ID
+details (with FRRO/Form-C fields for foreign nationals), then pay the
+host via UPI and confirm over WhatsApp. Room/activity pricing comes from
+the same Supabase tables as `/admin`; bookings are recorded in `bookings`
+/ `booking_items` / `booking_activities` / `booking_compliance` (see
+`supabase/schema.sql`) so nothing is lost if the WhatsApp message doesn't
+go through. Guests never log in -- row-level security lets anyone create
+a booking but only the admin account can ever read one back.
+
+Two things need to be set before this is fully live:
+
+- `lib/property-config.ts`: `upiId` (the payment QR won't render without
+  it -- the payment step shows a "message the host on WhatsApp instead"
+  notice until then) and `isGstCompliant` (leave `false` unless the
+  property has a GSTIN).
+- `whatsappNumber` (see "Before launch" below) -- the final confirmation
+  step needs it to open WhatsApp with the booking summary.
+
+There's currently no admin UI for viewing submitted bookings or managing
+`activities` -- they're in the database (viewable via Supabase's Table
+Editor) but not yet surfaced in `/admin`.
+
 ## Structure
 
 - `lib/property-config.ts` -- facts still marked open in the brief
@@ -66,6 +90,8 @@ gallery pages on the server per request rather than at build time.
   "Backend setup" above.
 - `app/admin/` -- the owner-facing admin panel (rooms + gallery
   management), gated by `proxy.ts` and Supabase Auth.
+- `app/book/`, `lib/gst.ts` -- the direct-booking flow and Indian
+  hospitality GST tax math. See "Booking" above.
 
 ## Before launch
 
@@ -80,3 +106,5 @@ See "Open Items" in the build brief. In particular:
 - Confirm the noon check-in/check-out time with the property.
 - Swap the illustrated hero for real clear-season photography once the
   archive is confirmed usable.
+- Set `upiId` and `isGstCompliant` in `lib/property-config.ts` so `/book`
+  can actually take a payment -- see "Booking" above.

@@ -17,6 +17,17 @@ export function whatsappLink(message: string): string | null {
   return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 }
 
+// TODO(open item): real UPI VPA ("name@bank") for the /book payment step.
+// Placeholder until the property confirms one -- the QR code and payment
+// step won't render a working payment target until this is set.
+export const upiId = "";
+export const upiPayeeName = property.name;
+
+// TODO(open item): confirm with the property whether they're GST-registered
+// (have a GSTIN). Most homestays under the threshold are GST-exempt --
+// leave false unless the owner confirms otherwise.
+export const isGstCompliant = false;
+
 // FLAG: noon check-in *and* check-out is unusual and unverified -- likely a
 // listing error. Kept as a single config value so correcting it is a
 // one-line change, not a layout change.

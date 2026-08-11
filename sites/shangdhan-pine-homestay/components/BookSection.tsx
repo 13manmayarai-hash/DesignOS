@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SectionHeading } from "@/components/SectionHeading";
 import { whatsappLink, property } from "@/lib/property-config";
 
@@ -9,37 +10,34 @@ export function BookSection() {
   return (
     <section id="book" className="bg-charcoal px-6 py-24 sm:px-10 sm:py-36">
       <div className="mx-auto max-w-2xl text-center">
-        <SectionHeading
-          eyebrow="Book"
-          title="Check availability over WhatsApp."
-          dark
-          center
-        />
+        <SectionHeading eyebrow="Book" title="Reserve your stay." dark center />
         <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-warm-white/75 sm:text-lg">
-          No booking engine yet &mdash; just message the host directly and
-          they&apos;ll confirm your dates.
+          Pick your dates and rooms, pay the host directly by UPI, and we&apos;ll confirm over
+          WhatsApp.
         </p>
-        <div className="mt-10">
+        <div className="mt-10 flex flex-col items-center gap-4">
+          <Link
+            href="/book"
+            className="group inline-flex items-center justify-center gap-2 bg-gold px-9 py-4 text-xs font-medium uppercase tracking-[0.18em] text-charcoal transition-colors duration-[180ms] ease-out hover:bg-gold-soft"
+          >
+            Book your stay
+            <span
+              className="inline-block transition-transform duration-[180ms] ease-out group-hover:translate-x-1"
+              aria-hidden
+            >
+              &rarr;
+            </span>
+          </Link>
           {link ? (
             <a
               href={link}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex items-center justify-center gap-2 bg-gold px-9 py-4 text-xs font-medium uppercase tracking-[0.18em] text-charcoal transition-colors duration-[180ms] ease-out hover:bg-gold-soft"
+              className="text-xs font-medium uppercase tracking-[0.14em] text-warm-white/60 underline-offset-4 hover:text-warm-white hover:underline"
             >
-              Message on WhatsApp
-              <span
-                className="inline-block transition-transform duration-[180ms] ease-out group-hover:translate-x-1"
-                aria-hidden
-              >
-                &rarr;
-              </span>
+              or message the host on WhatsApp
             </a>
-          ) : (
-            <p className="text-sm text-warm-white/60">
-              WhatsApp contact is being set up &mdash; check back soon.
-            </p>
-          )}
+          ) : null}
         </div>
       </div>
     </section>

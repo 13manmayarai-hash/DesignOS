@@ -73,7 +73,7 @@ export function SiteHeader({ showGallery = false }: { showGallery?: boolean }) {
         </nav>
 
         <Link
-          href="#book"
+          href="/book"
           className={`px-6 py-2.5 text-xs font-medium uppercase tracking-[0.18em] transition-colors duration-[180ms] ease-out ${
             scrolled
               ? "border border-charcoal/25 text-text-primary hover:border-charcoal/50"

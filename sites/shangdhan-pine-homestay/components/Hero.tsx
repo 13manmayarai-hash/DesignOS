@@ -50,7 +50,7 @@ export function Hero() {
           <Button href="#rooms" variant="primary">
             See the Rooms
           </Button>
-          <Button href="#book" variant="outlineDark">
+          <Button href="/book" variant="outlineDark">
             Check Availability
           </Button>
         </div>
