@@ -53,7 +53,7 @@ export function Lightbox({
       {children(open)}
       {index !== null ? (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-charcoal/95 px-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-charcoal/95 px-14 sm:px-20"
           role="dialog"
           aria-modal="true"
           aria-label={images[index].alt}
@@ -63,7 +63,7 @@ export function Lightbox({
             type="button"
             onClick={close}
             aria-label="Close"
-            className="absolute right-4 top-4 z-10 text-3xl leading-none text-warm-white/80 transition-colors hover:text-warm-white"
+            className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-warm-white/10 text-2xl leading-none text-warm-white/80 transition-colors hover:bg-warm-white/20 hover:text-warm-white"
           >
             &times;
           </button>
@@ -77,7 +77,7 @@ export function Lightbox({
                   prev();
                 }}
                 aria-label="Previous image"
-                className="absolute left-2 z-10 text-4xl leading-none text-warm-white/70 transition-colors hover:text-warm-white sm:left-6"
+                className="absolute left-2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-warm-white/10 text-2xl leading-none text-warm-white/70 transition-colors hover:bg-warm-white/20 hover:text-warm-white sm:left-6"
               >
                 &larr;
               </button>
@@ -88,7 +88,7 @@ export function Lightbox({
                   next();
                 }}
                 aria-label="Next image"
-                className="absolute right-2 z-10 text-4xl leading-none text-warm-white/70 transition-colors hover:text-warm-white sm:right-6"
+                className="absolute right-2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-warm-white/10 text-2xl leading-none text-warm-white/70 transition-colors hover:bg-warm-white/20 hover:text-warm-white sm:right-6"
               >
                 &rarr;
               </button>
