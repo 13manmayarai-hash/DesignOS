@@ -16,16 +16,21 @@ export function Lightbox({
   children: (open: (index: number) => void) => ReactNode;
 }) {
   const [index, setIndex] = useState<number | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
+  const open = useCallback((i: number) => {
+    setLoaded(false);
+    setIndex(i);
+  }, []);
   const close = useCallback(() => setIndex(null), []);
-  const next = useCallback(
-    () => setIndex((i) => (i === null ? null : (i + 1) % images.length)),
-    [images.length]
-  );
-  const prev = useCallback(
-    () => setIndex((i) => (i === null ? null : (i - 1 + images.length) % images.length)),
-    [images.length]
-  );
+  const next = useCallback(() => {
+    setLoaded(false);
+    setIndex((i) => (i === null ? null : (i + 1) % images.length));
+  }, [images.length]);
+  const prev = useCallback(() => {
+    setLoaded(false);
+    setIndex((i) => (i === null ? null : (i - 1 + images.length) % images.length));
+  }, [images.length]);
 
   useEffect(() => {
     if (index === null) return;
@@ -45,7 +50,7 @@ export function Lightbox({
 
   return (
     <>
-      {children(setIndex)}
+      {children(open)}
       {index !== null ? (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-charcoal/95 px-4"
@@ -94,13 +99,23 @@ export function Lightbox({
             className="relative h-[75vh] w-full max-w-4xl"
             onClick={(e) => e.stopPropagation()}
           >
+            {!loaded ? (
+              <div
+                className="absolute inset-0 flex items-center justify-center"
+                aria-hidden
+              >
+                <div className="h-10 w-10 animate-spin rounded-full border-2 border-warm-white/25 border-t-warm-white/80" />
+              </div>
+            ) : null}
             <Image
               src={images[index].src}
               alt={images[index].alt}
               fill
-              className="object-contain"
+              className={`object-contain transition-opacity duration-300 ${
+                loaded ? "opacity-100" : "opacity-0"
+              }`}
               sizes="100vw"
-              priority
+              onLoad={() => setLoaded(true)}
             />
           </div>
         </div>
