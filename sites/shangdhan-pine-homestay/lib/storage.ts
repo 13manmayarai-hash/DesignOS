@@ -12,3 +12,20 @@ export function randomStoragePath(originalName: string) {
   const id = crypto.randomUUID();
   return `${id}.${ext}`;
 }
+
+// guest-documents is private (see supabase/schema.sql), unlike the photo
+// buckets above -- there's no public URL to construct. Only an authenticated
+// (admin) Supabase client can successfully create a signed URL here; RLS on
+// storage.objects rejects the call otherwise. Short expiry since this is
+// personal ID data.
+export async function createSignedGuestDocumentUrl(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  storagePath: string,
+  expiresInSeconds = 300
+) {
+  const { data, error } = await supabase.storage
+    .from("guest-documents")
+    .createSignedUrl(storagePath, expiresInSeconds);
+  if (error) throw error;
+  return data.signedUrl;
+}

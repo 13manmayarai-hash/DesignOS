@@ -114,6 +114,15 @@ create index if not exists bookings_check_in_idx on bookings(check_in);
 create index if not exists booking_items_booking_id_idx on booking_items(booking_id);
 create index if not exists booking_activities_booking_id_idx on booking_activities(booking_id);
 
+-- Constrains bookings.status to the same workflow HomestayOS's Prisma
+-- schema defines as an enum. Postgres has no "add constraint if not
+-- exists", so drop-then-add to stay safely re-runnable.
+alter table bookings drop constraint if exists bookings_status_check;
+alter table bookings add constraint bookings_status_check
+  check (status in (
+    'AWAITING_UPI_RECONCILIATION', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED'
+  ));
+
 -- Keep updated_at current on every room edit.
 create or replace function set_updated_at()
 returns trigger as $$
