@@ -1,6 +1,5 @@
-import Image from "next/image";
-import { Lightbox } from "@/components/Lightbox";
 import { Reveal } from "@/components/Reveal";
+import { RoomPhotoGrid } from "@/components/RoomPhotoGrid";
 import { SectionHeading } from "@/components/SectionHeading";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getPublishedRooms } from "@/lib/data/rooms";
@@ -44,38 +43,13 @@ export async function RoomsSection() {
                 <Reveal key={room.id} delay={0.08 + i * 0.08}>
                   <div className="border-t-2 border-gold pt-6">
                     {room.room_images.length > 0 ? (
-                      <Lightbox
-                        images={room.room_images.map((image) => ({
+                      <RoomPhotoGrid
+                        photos={room.room_images.map((image) => ({
+                          id: image.id,
                           src: publicImageUrl("room-photos", image.storage_path),
                           alt: image.alt_text ?? room.name,
                         }))}
-                      >
-                        {(open) => (
-                          <div className="mb-6 grid grid-cols-3 gap-2">
-                            {room.room_images.slice(0, 3).map((image, imgIndex) => (
-                              <button
-                                key={image.id}
-                                type="button"
-                                onClick={() => open(imgIndex)}
-                                aria-label={`View larger photo of ${room.name}`}
-                                className={`relative block overflow-hidden bg-sand-dark/20 ${
-                                  imgIndex === 0
-                                    ? "col-span-2 row-span-2 aspect-square"
-                                    : "aspect-square"
-                                }`}
-                              >
-                                <Image
-                                  src={publicImageUrl("room-photos", image.storage_path)}
-                                  alt={image.alt_text ?? room.name}
-                                  fill
-                                  className="object-cover"
-                                  sizes="(min-width: 640px) 33vw, 45vw"
-                                />
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </Lightbox>
+                      />
                     ) : null}
                     <span className="font-display text-sm italic text-gold-ink">
                       {String(i + 1).padStart(2, "0")}
