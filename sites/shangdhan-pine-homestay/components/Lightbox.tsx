@@ -63,7 +63,7 @@ export function Lightbox({
             type="button"
             onClick={close}
             aria-label="Close"
-            className="absolute right-4 top-4 text-3xl leading-none text-warm-white/80 transition-colors hover:text-warm-white"
+            className="absolute right-4 top-4 z-10 text-3xl leading-none text-warm-white/80 transition-colors hover:text-warm-white"
           >
             &times;
           </button>
@@ -77,7 +77,7 @@ export function Lightbox({
                   prev();
                 }}
                 aria-label="Previous image"
-                className="absolute left-2 text-4xl leading-none text-warm-white/70 transition-colors hover:text-warm-white sm:left-6"
+                className="absolute left-2 z-10 text-4xl leading-none text-warm-white/70 transition-colors hover:text-warm-white sm:left-6"
               >
                 &larr;
               </button>
@@ -88,7 +88,7 @@ export function Lightbox({
                   next();
                 }}
                 aria-label="Next image"
-                className="absolute right-2 text-4xl leading-none text-warm-white/70 transition-colors hover:text-warm-white sm:right-6"
+                className="absolute right-2 z-10 text-4xl leading-none text-warm-white/70 transition-colors hover:text-warm-white sm:right-6"
               >
                 &rarr;
               </button>
