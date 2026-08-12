@@ -2,8 +2,18 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/data/settings";
 import { publicImageUrl } from "@/lib/storage";
-import { updateGstSettingsAction, uploadPaymentQrAction, removePaymentQrAction } from "./actions";
+import { CUSTOM_FONT_FAMILY, fontFormatFromPath } from "@/lib/fonts";
+import {
+  updateGstSettingsAction,
+  uploadPaymentQrAction,
+  removePaymentQrAction,
+  updateTypographySettingsAction,
+  uploadCustomFontAction,
+  removeCustomFontAction,
+} from "./actions";
 import { StampBadge } from "../_components/StampBadge";
+import { SubmitButton } from "../_components/SubmitButton";
+import { TypographySettingsForm } from "./_components/TypographySettingsForm";
 
 const inputClass =
   "mt-1.5 w-full max-w-sm border border-border-default bg-warm-white px-3 py-2 text-sm text-text-primary outline-none focus:border-gold-ink";
@@ -15,13 +25,27 @@ export default async function AdminSettingsPage() {
   const qrUrl = settings.payment_qr_storage_path
     ? publicImageUrl("payment-qr", settings.payment_qr_storage_path)
     : null;
+  const customFontUrl = settings.display_font_custom_storage_path
+    ? publicImageUrl("custom-fonts", settings.display_font_custom_storage_path)
+    : null;
 
   return (
     <div className="space-y-10">
+      {customFontUrl ? (
+        <style>{`
+          @font-face {
+            font-family: '${CUSTOM_FONT_FAMILY}';
+            src: url('${customFontUrl}') format('${fontFormatFromPath(settings.display_font_custom_storage_path!)}');
+            font-display: swap;
+          }
+        `}</style>
+      ) : null}
+
       <div>
         <h1 className="font-display text-3xl text-text-primary">Settings</h1>
         <p className="mt-2 text-sm text-text-secondary">
-          GST registration and the UPI payment QR code shown to guests at checkout.
+          GST registration, the UPI payment QR code, and the public site&apos;s display
+          typography.
         </p>
       </div>
 
@@ -118,6 +142,56 @@ export default async function AdminSettingsPage() {
             Upload
           </button>
         </form>
+      </section>
+
+      <section className="ledger-panel">
+        <h2 className="font-display text-xl text-text-primary">Typography</h2>
+        <p className="mt-2 text-sm text-text-secondary">
+          The display font used for headings and the hero headline on the public site and booking
+          flow -- pick one below, or upload your own. This doesn&apos;t change the admin
+          dashboard, which stays on Roboto.
+        </p>
+
+        <TypographySettingsForm
+          action={updateTypographySettingsAction}
+          initialFontChoice={settings.display_font_choice}
+          initialTextCase={settings.display_text_case}
+          initialSmallCaps={settings.display_small_caps}
+          initialLetterSpacing={settings.display_letter_spacing}
+          customFontFamily={customFontUrl ? CUSTOM_FONT_FAMILY : null}
+        />
+
+        <div className="mt-6 border-t border-border-default pt-5">
+          <p className={labelClass}>Custom font file</p>
+          <p className="mt-1 text-xs text-text-secondary">
+            .woff2, .woff, .ttf, or .otf. Uploading one adds it as a selectable option above.
+          </p>
+          {customFontUrl ? (
+            <form action={removeCustomFontAction} className="mt-2">
+              <SubmitButton
+                pendingLabel="Removing..."
+                className="text-xs font-medium text-stamp-red hover:underline"
+              >
+                Remove uploaded font
+              </SubmitButton>
+            </form>
+          ) : null}
+          <form action={uploadCustomFontAction} className="mt-3 flex flex-wrap items-end gap-4">
+            <input
+              type="file"
+              name="fontFile"
+              accept=".woff2,.woff,.ttf,.otf,font/woff2,font/woff,font/ttf,font/otf"
+              required
+              className="text-sm text-text-secondary"
+            />
+            <SubmitButton
+              pendingLabel="Uploading..."
+              className="border border-charcoal px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-charcoal hover:bg-charcoal hover:text-warm-white"
+            >
+              {customFontUrl ? "Replace" : "Upload"}
+            </SubmitButton>
+          </form>
+        </div>
       </section>
     </div>
   );

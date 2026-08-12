@@ -139,6 +139,19 @@ body::before {
   color: var(--color-charcoal);
 }
 
+/* Owner-configurable public-site typography (see /admin/settings and
+   app/(public)/layout.tsx, which sets --font-display/--display-* as
+   inline custom properties scoped to .public-shell). Font-family itself
+   just inherits through --font-display -- Tailwind's own .font-display
+   utility already reads that variable. Text-transform, small caps, and
+   letter-spacing aren't part of that utility, so they're added here,
+   scoped the same way so /admin (no .public-shell ancestor) is untouched. */
+.public-shell .font-display {
+  text-transform: var(--display-text-transform, none);
+  font-variant-caps: var(--display-font-variant-caps, normal);
+  letter-spacing: var(--display-letter-spacing, normal);
+}
+
 /* ============================================================================
  * Admin "highland ledger" system -- used only under app/admin/(dashboard)/.
  * The public site is a cinematic brochure; the admin is the owner's working

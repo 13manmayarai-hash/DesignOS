@@ -255,6 +255,22 @@ create table if not exists settings (
 
 insert into settings (id) values (true) on conflict (id) do nothing;
 
+-- Owner-configurable public-site display typography (headings, hero
+-- headline) -- picked from a curated list of Google Fonts in
+-- lib/fonts.ts, or an uploaded custom font file. Admin-only column
+-- additions on the same settings singleton row rather than a new table,
+-- same reasoning as the GST/QR fields above: one owner, one row of
+-- site-wide config.
+alter table settings add column if not exists display_font_choice text not null default 'roboto';
+alter table settings add column if not exists display_font_custom_storage_path text;
+alter table settings add column if not exists display_text_case text not null default 'none';
+alter table settings add column if not exists display_small_caps boolean not null default false;
+alter table settings add column if not exists display_letter_spacing numeric not null default 0;
+
+alter table settings drop constraint if exists settings_display_text_case_check;
+alter table settings add constraint settings_display_text_case_check
+  check (display_text_case in ('none', 'uppercase', 'lowercase', 'capitalize'));
+
 create index if not exists room_images_room_id_idx on room_images(room_id);
 create index if not exists rooms_sort_order_idx on rooms(sort_order);
 create index if not exists gallery_images_sort_order_idx on gallery_images(sort_order);
@@ -599,3 +615,20 @@ drop policy if exists "admin can manage invoices" on storage.objects;
 create policy "admin can manage invoices" on storage.objects
   for all using (bucket_id = 'invoices' and auth.role() = 'authenticated')
   with check (bucket_id = 'invoices' and auth.role() = 'authenticated');
+
+-- An uploaded custom display font (woff2/ttf/otf), used instead of the
+-- curated Google Fonts list when settings.display_font_choice = 'custom'.
+-- Public read like the photo buckets -- the browser needs to fetch the
+-- font file to render the public site.
+insert into storage.buckets (id, name, public)
+values ('custom-fonts', 'custom-fonts', true)
+on conflict (id) do nothing;
+
+drop policy if exists "public can read custom fonts" on storage.objects;
+create policy "public can read custom fonts" on storage.objects
+  for select using (bucket_id = 'custom-fonts');
+
+drop policy if exists "admin can manage custom fonts" on storage.objects;
+create policy "admin can manage custom fonts" on storage.objects
+  for all using (bucket_id = 'custom-fonts' and auth.role() = 'authenticated')
+  with check (bucket_id = 'custom-fonts' and auth.role() = 'authenticated');
