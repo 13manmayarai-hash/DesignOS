@@ -2,6 +2,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { getCinematicHero, getAllSightCards } from "@/lib/data/cinematic";
 import { publicImageUrl } from "@/lib/storage";
+import { SubmitButton } from "../_components/SubmitButton";
 import {
   uploadSkyImageAction,
   removeSkyImageAction,
@@ -37,12 +38,34 @@ const inputClass =
 const labelClass = "block text-xs font-medium uppercase tracking-[0.1em] text-text-secondary";
 const saveButtonClass =
   "bg-charcoal px-6 py-2.5 text-xs font-medium uppercase tracking-[0.14em] text-warm-white hover:bg-charcoal/90";
+// Tailwind's file: variant styles the native "Choose File" pseudo-button
+// (::file-selector-button) -- without it, that button is unstyled and the
+// whole input looks like bare unstyled text with no visible control.
+const fileInputClass =
+  "block w-full max-w-xs text-xs text-text-secondary file:mr-3 file:cursor-pointer file:border file:border-border-default file:bg-warm-white file:px-3 file:py-1.5 file:text-xs file:font-medium file:uppercase file:tracking-[0.08em] file:text-text-primary hover:file:bg-sand/50";
 
 function NumberBadge({ n }: { n: number }) {
   return (
     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-charcoal text-[10px] font-medium text-warm-white">
       {n}
     </span>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+      <polyline points="4 10 8 14 16 6" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+      <line x1="5" y1="5" x2="15" y2="15" />
+      <line x1="15" y1="5" x2="5" y2="15" />
+    </svg>
   );
 }
 
@@ -76,7 +99,7 @@ function MediaField({
       {hint ? <p className="mt-1 text-xs text-text-secondary">{hint}</p> : null}
 
       {url ? (
-        <div className="mt-3 flex items-center gap-4">
+        <div className="relative mt-3 inline-block">
           {isVideo ? (
             <video
               src={url}
@@ -93,27 +116,36 @@ function MediaField({
               className="h-24 w-40 border border-border-default object-cover"
             />
           )}
-          <form action={removeAction}>
-            <button type="submit" className="text-xs font-medium text-red-700 hover:underline">
-              Remove
-            </button>
+          <span
+            title="Uploaded"
+            aria-label="Uploaded"
+            className="absolute -bottom-2 -left-2 flex h-6 w-6 items-center justify-center rounded-full border-2 border-warm-white bg-forest text-warm-white shadow"
+          >
+            <CheckIcon />
+          </span>
+          <form action={removeAction} className="absolute -top-2 -right-2">
+            <SubmitButton
+              aria-label="Remove"
+              className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-warm-white bg-red-600 text-white shadow hover:bg-red-700"
+            >
+              <XIcon />
+            </SubmitButton>
           </form>
         </div>
       ) : (
-        <p className="mt-3 text-xs text-text-secondary">Not uploaded yet.</p>
+        <p className="mt-3 flex items-center gap-2 text-xs text-text-secondary">
+          <span className="flex h-4 w-4 items-center justify-center rounded-full border border-border-default text-[9px]">
+            !
+          </span>
+          Not uploaded yet.
+        </p>
       )}
 
       <form action={uploadAction} className="mt-3 flex flex-wrap items-end gap-3">
-        <input
-          type="file"
-          name="file"
-          accept={accept}
-          required
-          className="text-sm text-text-secondary"
-        />
-        <button type="submit" className={saveButtonClass}>
+        <input type="file" name="file" accept={accept} required className={fileInputClass} />
+        <SubmitButton pendingLabel="Uploading..." className={saveButtonClass}>
           {url ? "Replace" : "Upload"}
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );
@@ -255,9 +287,9 @@ export default async function AdminCinematicPage() {
               placeholder="Shangdhan Pine Homestay"
               className={inputClass}
             />
-            <button type="submit" className={`${saveButtonClass} mt-3`}>
+            <SubmitButton pendingLabel="Saving..." className={`${saveButtonClass} mt-3`}>
               Save
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </section>
@@ -383,9 +415,9 @@ export default async function AdminCinematicPage() {
                 />
               </div>
             </div>
-            <button type="submit" className={saveButtonClass}>
+            <SubmitButton pendingLabel="Saving..." className={saveButtonClass}>
               Save
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </section>
@@ -460,9 +492,12 @@ export default async function AdminCinematicPage() {
             <input name="kicker" placeholder="Kicker (e.g. Viewpoint)" className={inputClass} />
             <input name="title" placeholder="Title" className={inputClass} />
             <input name="description" placeholder="Description" className={inputClass} />
-            <button type="submit" className={`${saveButtonClass} sm:col-span-3 sm:w-fit`}>
+            <SubmitButton
+              pendingLabel="Adding..."
+              className={`${saveButtonClass} sm:col-span-3 sm:w-fit`}
+            >
               Add card
-            </button>
+            </SubmitButton>
           </form>
         </div>
 
@@ -478,13 +513,22 @@ export default async function AdminCinematicPage() {
                 <div key={card.id} className="border border-border-default bg-warm-white p-5">
                   <div className="flex items-center gap-3">
                     {pinUrl ? (
-                      <Image
-                        src={pinUrl}
-                        alt=""
-                        width={40}
-                        height={40}
-                        className="h-10 w-10 shrink-0 border border-border-default object-contain"
-                      />
+                      <div className="relative shrink-0">
+                        <Image
+                          src={pinUrl}
+                          alt=""
+                          width={40}
+                          height={40}
+                          className="h-10 w-10 border border-border-default object-contain"
+                        />
+                        <span
+                          title="Uploaded"
+                          aria-label="Uploaded"
+                          className="absolute -bottom-1.5 -left-1.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-warm-white bg-forest text-warm-white"
+                        >
+                          <CheckIcon />
+                        </span>
+                      </div>
                     ) : (
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-dashed border-sand-dark text-[10px] text-text-secondary">
                         icon
@@ -492,15 +536,15 @@ export default async function AdminCinematicPage() {
                     )}
                     <form
                       action={uploadSightCardPinAction.bind(null, card.id)}
-                      className="flex items-center gap-2"
+                      className="flex flex-wrap items-center gap-2"
                     >
-                      <input type="file" name="pin" accept="image/*" required className="text-xs" />
-                      <button
-                        type="submit"
+                      <input type="file" name="pin" accept="image/*" required className={fileInputClass} />
+                      <SubmitButton
+                        pendingLabel="Uploading..."
                         className="text-xs font-medium text-gold-ink hover:text-text-primary"
                       >
                         {pinUrl ? "Replace icon" : "Upload icon"}
-                      </button>
+                      </SubmitButton>
                     </form>
                   </div>
 
@@ -535,32 +579,34 @@ export default async function AdminCinematicPage() {
                       />
                       Published
                     </label>
-                    <button type="submit" className="w-full border border-charcoal px-3 py-2 text-xs font-medium uppercase tracking-[0.1em] text-charcoal hover:bg-charcoal hover:text-warm-white">
+                    <SubmitButton
+                      pendingLabel="Saving..."
+                      className="w-full border border-charcoal px-3 py-2 text-xs font-medium uppercase tracking-[0.1em] text-charcoal hover:bg-charcoal hover:text-warm-white"
+                    >
                       Save
-                    </button>
+                    </SubmitButton>
                   </form>
 
                   <div className="mt-3 flex items-center justify-between text-xs text-text-secondary">
                     <div className="flex gap-3">
                       <form action={moveSightCardAction.bind(null, card.id, "up")}>
-                        <button type="submit" disabled={i === 0} className="disabled:opacity-30">
+                        <SubmitButton disabled={i === 0} className="disabled:opacity-30">
                           &uarr; Move up
-                        </button>
+                        </SubmitButton>
                       </form>
                       <form action={moveSightCardAction.bind(null, card.id, "down")}>
-                        <button
-                          type="submit"
+                        <SubmitButton
                           disabled={i === sightCards.length - 1}
                           className="disabled:opacity-30"
                         >
                           Move down &darr;
-                        </button>
+                        </SubmitButton>
                       </form>
                     </div>
                     <form action={deleteSightCardAction.bind(null, card.id)}>
-                      <button type="submit" className="font-medium text-red-700 hover:underline">
+                      <SubmitButton pendingLabel="Deleting..." className="font-medium text-red-700 hover:underline">
                         Delete
-                      </button>
+                      </SubmitButton>
                     </form>
                   </div>
                 </div>
@@ -654,9 +700,9 @@ export default async function AdminCinematicPage() {
                 </div>
               </div>
             </div>
-            <button type="submit" className={saveButtonClass}>
+            <SubmitButton pendingLabel="Saving..." className={saveButtonClass}>
               Save
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </section>
@@ -703,9 +749,9 @@ export default async function AdminCinematicPage() {
                 className={inputClass}
               />
             </div>
-            <button type="submit" className={saveButtonClass}>
+            <SubmitButton pendingLabel="Saving..." className={saveButtonClass}>
               Save
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </section>
