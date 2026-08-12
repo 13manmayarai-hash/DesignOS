@@ -1,13 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Inter, JetBrains_Mono } from "next/font/google";
+import { Roboto, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-// Book 05 Ch3 -- one display family, one UI family. Serif reads as
-// heritage/hospitality; Inter carries body copy and UI at a legible size.
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
+// Book 05 Ch3 -- one display family, one UI family. Roboto (Google's own
+// typeface, used across Android/Material Design and most Google products)
+// carries headings and display text; Inter carries body copy and UI at a
+// legible size.
+const roboto = Roboto({
+  variable: "--font-roboto",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["500", "700", "900"],
+  style: ["normal", "italic"],
   display: "swap",
 });
 
@@ -44,7 +47,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${cormorant.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${roboto.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background font-sans text-text-primary">
         {children}

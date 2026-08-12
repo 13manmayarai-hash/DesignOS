@@ -3,7 +3,7 @@
 /*
  * Design tokens sourced from DesignOS:
  * Book 06 (Color Systems) -- palette fixed by the build brief, not regenerated.
- * Book 05 (Typography Bible) -- serif display + sans UI pairing, type scale.
+ * Book 05 (Typography Bible) -- Roboto display + Inter UI pairing, type scale.
  * Book 04 (Motion System) -- duration / easing / spring / stagger values.
  * Values are referenced by name throughout; never hard-code a raw value
  * in a component.
@@ -79,7 +79,7 @@
   --color-action-primary: var(--color-action-primary);
   --color-action-accent: var(--color-action-accent);
 
-  --font-display: var(--font-cormorant), Georgia, serif;
+  --font-display: var(--font-roboto), system-ui, sans-serif;
   --font-sans: var(--font-inter), system-ui, sans-serif;
   /* Admin-only ledger register -- booking IDs, dates, money, invoice
      numbers. See app/admin/(dashboard)/ for the only place this is used. */
