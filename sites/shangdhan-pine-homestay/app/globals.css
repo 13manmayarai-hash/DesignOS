@@ -25,6 +25,11 @@
      warm-white or white; keep --color-gold for fills (buttons, dividers)
      where the pairing is with charcoal text, not the background itself. */
   --color-gold-ink: #8a6423;
+  /* Admin-only: the "void" ink for a cancelled booking's stamp -- a warm
+     oxide red pulled from the same earthy family as the rest of the
+     palette, not Tailwind's default red-700, which reads colder and
+     off-brand next to charcoal/forest/gold. */
+  --color-stamp-red: #9a3324;
 
   /* Semantic tokens, Book 06 Ch11 -- reference these, not raw colors */
   --color-background: var(--color-warm-white);
@@ -67,6 +72,7 @@
   --color-gold: var(--color-gold);
   --color-gold-soft: var(--color-gold-soft);
   --color-gold-ink: var(--color-gold-ink);
+  --color-stamp-red: var(--color-stamp-red);
   --color-border-default: var(--color-border-default);
   --color-text-primary: var(--color-text-primary);
   --color-text-secondary: var(--color-text-secondary);
@@ -75,6 +81,9 @@
 
   --font-display: var(--font-cormorant), Georgia, serif;
   --font-sans: var(--font-inter), system-ui, sans-serif;
+  /* Admin-only ledger register -- booking IDs, dates, money, invoice
+     numbers. See app/admin/(dashboard)/ for the only place this is used. */
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", monospace;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -128,4 +137,82 @@ body::before {
 ::selection {
   background: var(--color-gold-soft);
   color: var(--color-charcoal);
+}
+
+/* ============================================================================
+ * Admin "highland ledger" system -- used only under app/admin/(dashboard)/.
+ * The public site is a cinematic brochure; the admin is the owner's working
+ * logbook for the same property, so it shares the brand tokens above but
+ * reads as a ruled ledger sheet rather than a marketing page: a squared-off
+ * white sheet with a heavy top rule (like a ledger page header), and an
+ * ink-stamp mark for anything with a status -- apt for a homestay that
+ * really does process guest passport/visa stamps for FRRO compliance.
+ * ============================================================================ */
+
+.ledger-panel {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-default);
+  border-top: 2px solid var(--color-charcoal);
+  padding: 1.5rem;
+  box-shadow:
+    0 1px 2px rgba(38, 34, 32, 0.05),
+    0 12px 24px -20px rgba(38, 34, 32, 0.45);
+}
+
+/* A small punched hole in the top-left margin -- the one place the "binder
+   sheet" idea shows up as literal texture, kept tiny and out of the way of
+   any content so it reads as a detail, not decoration competing for
+   attention with the ink stamp (the actual signature element). */
+.ledger-panel::before {
+  content: "";
+  position: absolute;
+  top: 16px;
+  left: -5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--color-warm-white);
+  border: 1px solid var(--color-sand-dark);
+}
+
+/* A lighter sibling of .ledger-panel for small grid tiles (gallery photos,
+   sight cards) -- same top-rule language, tighter padding, no punch hole
+   (too small a tile for that detail to read as anything but noise). */
+.ledger-tile {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-default);
+  border-top: 2px solid var(--color-charcoal);
+  padding: 0.75rem;
+  box-shadow: 0 1px 2px rgba(38, 34, 32, 0.05);
+}
+
+/* The ink stamp: booking status, FRRO-submitted, published/unpublished --
+   anywhere the admin needs an at-a-glance mark of record. Color comes from
+   the text color utility applied alongside this class (e.g. text-forest),
+   via currentColor, so one class covers every tone. */
+.ink-stamp {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.3em 0.75em;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  transform: rotate(-3deg);
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}
+
+.ink-stamp::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  opacity: 0.45;
 }

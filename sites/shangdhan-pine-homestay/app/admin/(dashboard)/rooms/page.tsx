@@ -4,6 +4,7 @@ import { getAllRooms } from "@/lib/data/rooms";
 import { getAllBlockedRanges } from "@/lib/data/blocked-dates";
 import { publicImageUrl } from "@/lib/storage";
 import { SubmitButton } from "../_components/SubmitButton";
+import { StampBadge } from "../_components/StampBadge";
 import {
   createRoomAction,
   deleteRoomAction,
@@ -36,7 +37,7 @@ export default async function AdminRoomsPage() {
         </p>
       </div>
 
-      <section className="border border-border-default bg-warm-white p-6">
+      <section className="ledger-panel">
         <h2 className="font-display text-xl text-text-primary">Add a room</h2>
         <form action={createRoomAction} className="mt-5 grid gap-4 sm:grid-cols-2">
           <RoomFields />
@@ -56,13 +57,18 @@ export default async function AdminRoomsPage() {
           <p className="text-sm text-text-secondary">No rooms yet -- add the first one above.</p>
         ) : null}
         {rooms.map((room) => (
-          <div key={room.id} className="border border-border-default bg-warm-white p-6">
+          <div key={room.id} className="ledger-panel">
             <div className="flex items-start justify-between gap-4">
-              <h3 className="font-display text-xl text-text-primary">{room.name}</h3>
+              <div className="flex items-center gap-3">
+                <h3 className="font-display text-xl text-text-primary">{room.name}</h3>
+                <StampBadge tone={room.published ? "confirmed" : "muted"}>
+                  {room.published ? "Published" : "Hidden"}
+                </StampBadge>
+              </div>
               <form action={deleteRoomAction.bind(null, room.id)}>
                 <button
                   type="submit"
-                  className="text-xs font-medium uppercase tracking-[0.1em] text-red-700 hover:underline"
+                  className="text-xs font-medium uppercase tracking-[0.1em] text-stamp-red hover:underline"
                 >
                   Delete room
                 </button>
@@ -114,7 +120,7 @@ export default async function AdminRoomsPage() {
                         </button>
                       </form>
                       <form action={deleteRoomImageAction.bind(null, image.id)}>
-                        <button type="submit" className="text-red-700 hover:underline">
+                        <button type="submit" className="text-stamp-red hover:underline">
                           Remove
                         </button>
                       </form>
@@ -167,9 +173,9 @@ export default async function AdminRoomsPage() {
                     {roomBlockedRanges.map((range) => (
                       <li
                         key={range.id}
-                        className="flex items-center justify-between gap-3 border border-border-default bg-sand/20 px-3 py-2 text-sm"
+                        className="flex items-center justify-between gap-3 border-b border-border-default py-2 text-sm"
                       >
-                        <span className="text-text-primary">
+                        <span className="font-mono text-xs text-text-primary">
                           {range.start_date} &rarr; {range.end_date}
                           {range.reason ? (
                             <span className="text-text-secondary"> -- {range.reason}</span>
@@ -178,7 +184,7 @@ export default async function AdminRoomsPage() {
                         <form action={deleteBlockedRangeAction.bind(null, range.id)}>
                           <SubmitButton
                             pendingLabel="Removing..."
-                            className="text-xs font-medium text-red-700 hover:underline"
+                            className="text-xs font-medium text-stamp-red hover:underline"
                           >
                             Remove
                           </SubmitButton>

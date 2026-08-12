@@ -27,7 +27,7 @@ export default async function AdminGalleryPage() {
         </p>
       </div>
 
-      <section className="border border-border-default bg-warm-white p-6">
+      <section className="ledger-panel">
         <h2 className="font-display text-xl text-text-primary">Add a photo</h2>
         <form
           action={uploadGalleryImageAction}
@@ -66,7 +66,7 @@ export default async function AdminGalleryPage() {
         ) : null}
         <div className="grid grid-cols-2 gap-6 sm:grid-cols-3">
           {images.map((image, i) => (
-            <div key={image.id} className="border border-border-default bg-warm-white p-3">
+            <div key={image.id} className="ledger-tile">
               <div className="relative aspect-[4/3] overflow-hidden bg-sand-dark/20">
                 <Image
                   src={publicImageUrl("gallery-photos", image.storage_path)}
@@ -113,7 +113,7 @@ export default async function AdminGalleryPage() {
                 </form>
               </div>
               <form action={deleteGalleryImageAction.bind(null, image.id)} className="mt-2">
-                <button type="submit" className="text-xs font-medium text-red-700 hover:underline">
+                <button type="submit" className="text-xs font-medium text-stamp-red hover:underline">
                   Delete
                 </button>
               </form>

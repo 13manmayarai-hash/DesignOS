@@ -3,18 +3,19 @@ import { getAllBookings, BOOKING_STATUSES, type BookingStatus } from "@/lib/data
 import { getAllInvoices } from "@/lib/data/invoices";
 import { createSignedGuestDocumentUrl, createSignedInvoiceUrl } from "@/lib/storage";
 import { SubmitButton } from "../_components/SubmitButton";
+import { StampBadge } from "../_components/StampBadge";
 import { updateBookingStatusAction, markFrroSubmittedAction, generateInvoiceAction } from "./actions";
 
 const inputClass =
   "mt-1.5 border border-border-default bg-warm-white px-3 py-2 text-sm text-text-primary outline-none focus:border-gold-ink";
 const labelClass = "block text-xs font-medium uppercase tracking-[0.1em] text-text-secondary";
 
-const STATUS_STYLE: Record<BookingStatus, string> = {
-  AWAITING_UPI_RECONCILIATION: "bg-gold/15 text-gold-ink",
-  CONFIRMED: "bg-forest/10 text-forest",
-  CHECKED_IN: "bg-forest text-warm-white",
-  CHECKED_OUT: "bg-sand-dark/40 text-text-secondary",
-  CANCELLED: "bg-red-100 text-red-700",
+const STATUS_TONE: Record<BookingStatus, "confirmed" | "pending" | "muted" | "void"> = {
+  AWAITING_UPI_RECONCILIATION: "pending",
+  CONFIRMED: "confirmed",
+  CHECKED_IN: "confirmed",
+  CHECKED_OUT: "muted",
+  CANCELLED: "void",
 };
 
 // The linear path every booking follows, left to right. CANCELLED isn't in
@@ -111,27 +112,25 @@ export default async function AdminBookingsPage() {
             const cancelledAt = eventTimeByStatus.get("CANCELLED");
 
             return (
-              <div key={booking.id} className="border border-border-default bg-surface p-6">
+              <div key={booking.id} className="ledger-panel">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-3">
                       <h2 className="font-display text-xl text-text-primary">{booking.guest_name}</h2>
-                      <span
-                        className={`px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.08em] ${STATUS_STYLE[booking.status]}`}
-                      >
+                      <StampBadge tone={STATUS_TONE[booking.status]}>
                         {booking.status.replace(/_/g, " ")}
-                      </span>
+                      </StampBadge>
                     </div>
-                    <p className="mt-1 text-xs text-text-secondary">
+                    <p className="mt-1 font-mono text-xs text-text-secondary">
                       {booking.guest_phone}
                       {booking.guest_email ? ` -- ${booking.guest_email}` : ""} -- {booking.guest_nationality}
                     </p>
-                    <p className="mt-1 text-xs text-text-secondary">
+                    <p className="mt-1 font-mono text-xs text-text-secondary">
                       {booking.check_in} to {booking.check_out} ({nights} night{nights > 1 ? "s" : ""}) --
                       requested {new Date(booking.created_at).toLocaleString("en-IN")}
                     </p>
                   </div>
-                  <p className="font-display text-2xl text-text-primary">
+                  <p className="font-mono text-2xl text-text-primary">
                     {formatInr(booking.total_amount)}
                   </p>
                 </div>
@@ -165,8 +164,8 @@ export default async function AdminBookingsPage() {
                   })}
                   {isCancelled && cancelledAt ? (
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="h-2 w-2 shrink-0 rounded-full bg-red-600" />
-                      <span className="font-medium text-red-700">Cancelled</span>
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-stamp-red" />
+                      <span className="font-medium text-stamp-red">Cancelled</span>
                       <span className="text-text-secondary">{formatTimestamp(cancelledAt)}</span>
                     </div>
                   ) : null}
@@ -207,7 +206,7 @@ export default async function AdminBookingsPage() {
                           <span
                             className={`mt-[5px] h-px w-8 shrink-0 ${
                               isLastVisible
-                                ? "bg-red-300"
+                                ? "bg-stamp-red/40"
                                 : nextReached
                                   ? "bg-forest"
                                   : "bg-sand-dark/60"
@@ -221,9 +220,9 @@ export default async function AdminBookingsPage() {
                     <div className="flex w-20 flex-col items-center gap-1.5 text-center">
                       <span
                         title={`Cancelled -- ${formatTimestamp(cancelledAt)}`}
-                        className="h-2.5 w-2.5 shrink-0 rounded-full bg-red-600"
+                        className="h-2.5 w-2.5 shrink-0 rounded-full bg-stamp-red"
                       />
-                      <span className="text-[10px] uppercase leading-tight tracking-[0.06em] text-red-700">
+                      <span className="text-[10px] uppercase leading-tight tracking-[0.06em] text-stamp-red">
                         Cancelled
                       </span>
                     </div>
@@ -239,7 +238,9 @@ export default async function AdminBookingsPage() {
                           <span>
                             {item.quantity}x {item.room_name}
                           </span>
-                          <span className="text-text-secondary">{formatInr(item.price_at_booking)}</span>
+                          <span className="font-mono text-text-secondary">
+                            {formatInr(item.price_at_booking)}
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -248,7 +249,7 @@ export default async function AdminBookingsPage() {
                         {booking.booking_activities.map((activity) => (
                           <li key={activity.id} className="flex justify-between">
                             <span>{activity.activity_title}</span>
-                            <span className="text-text-secondary">
+                            <span className="font-mono text-text-secondary">
                               {formatInr(activity.price_at_booking)}
                             </span>
                           </li>
@@ -256,7 +257,10 @@ export default async function AdminBookingsPage() {
                       </ul>
                     ) : null}
                     <p className="mt-2 text-xs text-text-secondary">
-                      UTR: <span className="text-text-primary">{booking.utr_number || "not provided"}</span>
+                      UTR:{" "}
+                      <span className="font-mono text-text-primary">
+                        {booking.utr_number || "not provided"}
+                      </span>
                     </p>
                   </div>
 
@@ -291,23 +295,27 @@ export default async function AdminBookingsPage() {
                       <p className="mt-2 text-sm text-text-secondary">No ID document uploaded.</p>
                     )}
                     {isForeign ? (
-                      <form
-                        action={markFrroSubmittedAction.bind(
-                          null,
-                          booking.id,
-                          !(booking.booking_compliance?.submitted_frro ?? false)
-                        )}
-                        className="mt-3"
-                      >
-                        <button
-                          type="submit"
-                          className="text-xs font-medium uppercase tracking-[0.1em] text-text-secondary hover:text-text-primary"
+                      <div className="mt-3 flex items-center gap-3">
+                        {booking.booking_compliance?.submitted_frro ? (
+                          <StampBadge tone="confirmed">Filed FRRO</StampBadge>
+                        ) : null}
+                        <form
+                          action={markFrroSubmittedAction.bind(
+                            null,
+                            booking.id,
+                            !(booking.booking_compliance?.submitted_frro ?? false)
+                          )}
                         >
-                          {booking.booking_compliance?.submitted_frro
-                            ? "✓ Marked as submitted to FRRO"
-                            : "Mark as submitted to FRRO"}
-                        </button>
-                      </form>
+                          <button
+                            type="submit"
+                            className="text-xs font-medium uppercase tracking-[0.1em] text-text-secondary hover:text-text-primary"
+                          >
+                            {booking.booking_compliance?.submitted_frro
+                              ? "Mark as not submitted"
+                              : "Mark as submitted to FRRO"}
+                          </button>
+                        </form>
+                      </div>
                     ) : null}
                   </div>
                 </div>
@@ -316,7 +324,7 @@ export default async function AdminBookingsPage() {
                   <p className={labelClass}>Invoice</p>
                   {invoice ? (
                     <>
-                      <span className="text-sm text-text-primary">{invoice.invoice_number}</span>
+                      <span className="font-mono text-sm text-text-primary">{invoice.invoice_number}</span>
                       {invoiceUrl ? (
                         <a
                           href={invoiceUrl}

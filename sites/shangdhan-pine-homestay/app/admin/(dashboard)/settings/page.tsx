@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/data/settings";
 import { publicImageUrl } from "@/lib/storage";
 import { updateGstSettingsAction, uploadPaymentQrAction, removePaymentQrAction } from "./actions";
+import { StampBadge } from "../_components/StampBadge";
 
 const inputClass =
   "mt-1.5 w-full max-w-sm border border-border-default bg-warm-white px-3 py-2 text-sm text-text-primary outline-none focus:border-gold-ink";
@@ -24,8 +25,13 @@ export default async function AdminSettingsPage() {
         </p>
       </div>
 
-      <section className="border border-border-default bg-warm-white p-6">
-        <h2 className="font-display text-xl text-text-primary">GST</h2>
+      <section className="ledger-panel">
+        <div className="flex items-center gap-3">
+          <h2 className="font-display text-xl text-text-primary">GST</h2>
+          <StampBadge tone={settings.gst_applicable ? "confirmed" : "muted"}>
+            {settings.gst_applicable ? "Registered" : "Not registered"}
+          </StampBadge>
+        </div>
         <form action={updateGstSettingsAction} className="mt-5 space-y-4">
           <div>
             <label htmlFor="gstApplicable" className={labelClass}>
@@ -68,7 +74,7 @@ export default async function AdminSettingsPage() {
         </p>
       </section>
 
-      <section className="border border-border-default bg-warm-white p-6">
+      <section className="ledger-panel">
         <h2 className="font-display text-xl text-text-primary">Payment QR code</h2>
         <p className="mt-2 text-sm text-text-secondary">
           Upload a screenshot of your UPI QR code (from your bank or UPI app). Guests scan this at
@@ -85,7 +91,7 @@ export default async function AdminSettingsPage() {
               className="border border-border-default object-contain"
             />
             <form action={removePaymentQrAction}>
-              <button type="submit" className="text-xs font-medium text-red-700 hover:underline">
+              <button type="submit" className="text-xs font-medium text-stamp-red hover:underline">
                 Remove QR code
               </button>
             </form>

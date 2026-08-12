@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { property } from "@/lib/property-config";
 
 const isConfigured = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -59,48 +60,51 @@ function LoginForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
       <div className="w-full max-w-sm">
-        <p className="mb-2 text-xs font-medium uppercase tracking-[0.22em] text-gold-ink">
-          Shangdhan Pine Homestay
+        <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.22em] text-gold-ink">
+          Ledger
         </p>
-        <h1 className="font-display text-3xl text-text-primary">Admin sign in</h1>
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-xs font-medium uppercase tracking-[0.12em] text-text-secondary">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-2 w-full border border-border-default bg-warm-white px-4 py-3 text-sm text-text-primary outline-none focus:border-gold-ink"
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="block text-xs font-medium uppercase tracking-[0.12em] text-text-secondary">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-2 w-full border border-border-default bg-warm-white px-4 py-3 text-sm text-text-primary outline-none focus:border-gold-ink"
-            />
-          </div>
-          {error ? <p className="text-sm text-red-700">{error}</p> : null}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-charcoal px-6 py-3.5 text-xs font-medium uppercase tracking-[0.18em] text-warm-white transition-colors duration-150 ease-out hover:bg-charcoal/90 disabled:opacity-60"
-          >
-            {loading ? "Signing in..." : "Sign in"}
-          </button>
-        </form>
+        <p className="font-display text-2xl leading-tight text-text-primary">{property.name}</p>
+        <div className="ledger-panel mt-6">
+          <h1 className="font-display text-2xl text-text-primary">Admin sign in</h1>
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-xs font-medium uppercase tracking-[0.12em] text-text-secondary">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-2 w-full border border-border-default bg-warm-white px-4 py-3 text-sm text-text-primary outline-none focus:border-gold-ink"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="block text-xs font-medium uppercase tracking-[0.12em] text-text-secondary">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-2 w-full border border-border-default bg-warm-white px-4 py-3 text-sm text-text-primary outline-none focus:border-gold-ink"
+              />
+            </div>
+            {error ? <p className="text-sm text-stamp-red">{error}</p> : null}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-charcoal px-6 py-3.5 text-xs font-medium uppercase tracking-[0.18em] text-warm-white transition-colors duration-150 ease-out hover:bg-charcoal/90 disabled:opacity-60"
+            >
+              {loading ? "Signing in..." : "Sign in"}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

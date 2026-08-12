@@ -91,7 +91,7 @@ function MediaField({
   const url = currentPath ? publicImageUrl("cinematic-media", currentPath) : null;
 
   return (
-    <div className="border border-border-default bg-warm-white p-5">
+    <div className="ledger-panel">
       <div className="flex items-center gap-2">
         <NumberBadge n={n} />
         <p className="text-sm font-medium text-text-primary">{label}</p>
@@ -126,7 +126,7 @@ function MediaField({
           <form action={removeAction} className="absolute -top-2 -right-2">
             <SubmitButton
               aria-label="Remove"
-              className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-warm-white bg-red-600 text-white shadow hover:bg-red-700"
+              className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-warm-white bg-stamp-red text-white shadow hover:opacity-90"
             >
               <XIcon />
             </SubmitButton>
@@ -171,7 +171,7 @@ const WIREFRAME_STAGE_PINS = [
 
 function CinematicWireframe() {
   return (
-    <div className="border border-border-default bg-warm-white p-5">
+    <div className="ledger-panel">
       <p className={labelClass}>Reference wireframe</p>
       <p className="mt-1 max-w-2xl text-xs text-text-secondary">
         Where each numbered field below actually appears on the hero. The headline, sight cards,
@@ -271,7 +271,7 @@ export default async function AdminCinematicPage() {
 
       <section className="space-y-4">
         <h2 className="font-display text-xl text-text-primary">Header</h2>
-        <div className="border border-border-default bg-warm-white p-5">
+        <div className="ledger-panel">
           <div className="flex items-center gap-2">
             <NumberBadge n={13} />
             <p className="text-sm font-medium text-text-primary">Header logo label</p>
@@ -339,7 +339,7 @@ export default async function AdminCinematicPage() {
 
       <section className="space-y-4">
         <h2 className="font-display text-xl text-text-primary">Headline &amp; intro</h2>
-        <div className="border border-border-default bg-warm-white p-5">
+        <div className="ledger-panel">
           <div className="flex items-center gap-2">
             <NumberBadge n={4} />
             <p className="text-sm font-medium text-text-primary">
@@ -484,7 +484,7 @@ export default async function AdminCinematicPage() {
           one-line description.
         </p>
 
-        <div className="border border-border-default bg-warm-white p-5">
+        <div className="ledger-panel">
           <p className="text-xs font-medium uppercase tracking-[0.1em] text-text-secondary">
             Add a card
           </p>
@@ -510,7 +510,7 @@ export default async function AdminCinematicPage() {
                 ? publicImageUrl("cinematic-media", card.pin_icon_path)
                 : null;
               return (
-                <div key={card.id} className="border border-border-default bg-warm-white p-5">
+                <div key={card.id} className="ledger-panel">
                   <div className="flex items-center gap-3">
                     {pinUrl ? (
                       <div className="relative shrink-0">
@@ -604,7 +604,7 @@ export default async function AdminCinematicPage() {
                       </form>
                     </div>
                     <form action={deleteSightCardAction.bind(null, card.id)}>
-                      <SubmitButton pendingLabel="Deleting..." className="font-medium text-red-700 hover:underline">
+                      <SubmitButton pendingLabel="Deleting..." className="font-medium text-stamp-red hover:underline">
                         Delete
                       </SubmitButton>
                     </form>
@@ -621,7 +621,7 @@ export default async function AdminCinematicPage() {
           <NumberBadge n={11} />
           <h2 className="font-display text-xl text-text-primary">Story panel 1</h2>
         </div>
-        <div className="border border-border-default bg-warm-white p-5">
+        <div className="ledger-panel">
           <form action={updatePanel1Action} className="space-y-4">
             <div>
               <label htmlFor="panel1Heading" className={labelClass}>
@@ -712,7 +712,7 @@ export default async function AdminCinematicPage() {
           <NumberBadge n={12} />
           <h2 className="font-display text-xl text-text-primary">Story panel 2</h2>
         </div>
-        <div className="border border-border-default bg-warm-white p-5">
+        <div className="ledger-panel">
           <form action={updatePanel2Action} className="space-y-4">
             <div>
               <label htmlFor="panel2Heading" className={labelClass}>
