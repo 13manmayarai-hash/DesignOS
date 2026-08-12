@@ -29,7 +29,38 @@ export type CinematicHero = {
   panel2_cta_label: string | null;
 };
 
-// cinematic_hero is a singleton row (id is always `true`, see schema.sql).
+const EMPTY_CINEMATIC_HERO: CinematicHero = {
+  header_logo_label: null,
+  sky_image_path: null,
+  sky_video_path: null,
+  glow_image_path: null,
+  midground_image_path: null,
+  hero_headline: null,
+  intro_paragraph: null,
+  hero_tag_1: null,
+  hero_tag_2: null,
+  hero_tag_3: null,
+  splitframe_left_path: null,
+  splitframe_right_path: null,
+  main_image_path: null,
+  main_video_path: null,
+  closeup_image_path: null,
+  panel1_heading: null,
+  panel1_paragraph: null,
+  panel1_fact1_value: null,
+  panel1_fact1_label: null,
+  panel1_fact2_value: null,
+  panel1_fact2_label: null,
+  panel2_heading: null,
+  panel2_paragraph: null,
+  panel2_cta_label: null,
+};
+
+// cinematic_hero is a singleton row (id is always `true`, see schema.sql)
+// that the migration seeds automatically -- but this being a public-facing
+// homepage read, don't let a missing row (a schema.sql run that predates
+// this table, a row deleted by hand, anything) take down the whole site.
+// maybeSingle() + a well-known-shape fallback instead of single() + throw.
 // select("*") rather than an explicit column list -- supabase-js's
 // select-string type parser falls back to an unusable error type on a
 // list this long, so keep it simple and let the return cast do the work.
@@ -38,9 +69,9 @@ export async function getCinematicHero(supabase: SupabaseClient): Promise<Cinema
     .from("cinematic_hero")
     .select("*")
     .eq("id", true)
-    .single();
+    .maybeSingle();
   if (error) throw error;
-  return data as CinematicHero;
+  return (data as CinematicHero | null) ?? EMPTY_CINEMATIC_HERO;
 }
 
 export async function updateCinematicHero(
