@@ -138,14 +138,18 @@ export async function addRoomImage(
 }
 
 export async function deleteRoomImage(supabase: SupabaseClient, imageId: string) {
+  // maybeSingle, not single -- a double-click or already-deleted row should
+  // no-op the storage cleanup, not throw and leave the delete half-done.
   const { data: image, error: fetchError } = await supabase
     .from("room_images")
     .select("storage_path")
     .eq("id", imageId)
-    .single();
+    .maybeSingle();
   if (fetchError) throw fetchError;
 
-  await supabase.storage.from("room-photos").remove([image.storage_path]);
+  if (image) {
+    await supabase.storage.from("room-photos").remove([image.storage_path]);
+  }
 
   const { error } = await supabase.from("room_images").delete().eq("id", imageId);
   if (error) throw error;

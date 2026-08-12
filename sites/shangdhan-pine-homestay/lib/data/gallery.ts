@@ -55,14 +55,18 @@ export async function updateGalleryImage(
 }
 
 export async function deleteGalleryImage(supabase: SupabaseClient, id: string) {
+  // maybeSingle, not single -- a double-click or already-deleted row should
+  // no-op the storage cleanup, not throw and leave the delete half-done.
   const { data: image, error: fetchError } = await supabase
     .from("gallery_images")
     .select("storage_path")
     .eq("id", id)
-    .single();
+    .maybeSingle();
   if (fetchError) throw fetchError;
 
-  await supabase.storage.from("gallery-photos").remove([image.storage_path]);
+  if (image) {
+    await supabase.storage.from("gallery-photos").remove([image.storage_path]);
+  }
 
   const { error } = await supabase.from("gallery_images").delete().eq("id", id);
   if (error) throw error;
