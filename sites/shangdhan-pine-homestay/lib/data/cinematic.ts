@@ -78,6 +78,16 @@ export async function getAllSightCards(supabase: SupabaseClient): Promise<SightC
   return data as SightCard[];
 }
 
+export async function getPublishedSightCards(supabase: SupabaseClient): Promise<SightCard[]> {
+  const { data, error } = await supabase
+    .from("cinematic_sight_cards")
+    .select("*")
+    .eq("published", true)
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return data as SightCard[];
+}
+
 export async function createSightCard(supabase: SupabaseClient, input: SightCardInput) {
   const { data: existing } = await supabase
     .from("cinematic_sight_cards")

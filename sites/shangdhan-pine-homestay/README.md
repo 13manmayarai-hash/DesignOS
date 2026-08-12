@@ -110,6 +110,29 @@ registration for India; the WhatsApp Business Cloud API with Meta
 Business verification for WhatsApp) that are more involved to set up
 than a straightforward addition to the codebase.
 
+## Homepage hero (`components/CinematicHero.tsx`)
+
+A scroll-driven cinematic hero: the headline fades as you scroll, a
+foreground image splits apart and launches upward revealing a close-up,
+two story panels fade in and out, and a slider of nearby sights flies in
+from off-screen. All of it -- every scene image/video, the headline,
+intro copy, both story panels, and the sight cards -- is edited from
+`/admin/cinematic`, not code. See `supabase/schema.sql` (`cinematic_hero`,
+`cinematic_sight_cards`) and `lib/data/cinematic.ts`.
+
+**Every scene image needs a transparent background (PNG).** The layers
+overlap by design -- the split-frame halves, the main hero image, the
+close-up, the atmospheric glow -- so an opaque rectangular photo in any
+of those slots will cover whatever's meant to show through or behind it.
+Export each as a PNG with the subject cut out and the rest transparent,
+not a plain photo. The sky and mid-ground layers are the exception --
+those are meant to be full-bleed backdrops.
+
+Nothing is required to launch: every layer and text field is optional
+and the hero degrades gracefully with none of it set (solid background,
+just the headline). The sky/main-hero video fields take priority over
+their image counterpart when both are set.
+
 ## Structure
 
 - `lib/property-config.ts` -- facts still marked open in the brief (the
