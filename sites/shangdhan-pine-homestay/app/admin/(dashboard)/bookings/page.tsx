@@ -119,63 +119,98 @@ export default async function AdminBookingsPage() {
                   </p>
                 </div>
 
-                <div className="mt-4 overflow-x-auto">
-                  <div className="flex w-max items-start">
-                    {visibleSteps.map((step, i) => {
-                      const reachedAt = eventTimeByStatus.get(step.status);
-                      const reached = Boolean(reachedAt);
-                      const isLastVisible = i === visibleSteps.length - 1;
-                      const showConnector = !isLastVisible || isCancelled;
-                      const nextReached =
-                        !isLastVisible && eventTimeByStatus.has(visibleSteps[i + 1].status);
-
-                      return (
-                        <div key={step.status} className="flex items-start">
-                          <div className="flex w-16 flex-col items-center gap-1.5 text-center">
-                            <span
-                              title={
-                                reached
-                                  ? `${step.label} -- ${formatTimestamp(reachedAt!)}`
-                                  : `${step.label} -- not yet`
-                              }
-                              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                                reached ? "bg-forest" : "bg-sand-dark/60"
-                              }`}
-                            />
-                            <span
-                              className={`text-[10px] uppercase leading-tight tracking-[0.06em] ${
-                                reached ? "text-text-primary" : "text-text-secondary/60"
-                              }`}
-                            >
-                              {step.label}
-                            </span>
-                          </div>
-                          {showConnector ? (
-                            <span
-                              className={`mt-[5px] h-px w-4 shrink-0 sm:w-8 ${
-                                isLastVisible
-                                  ? "bg-red-300"
-                                  : nextReached
-                                    ? "bg-forest"
-                                    : "bg-sand-dark/60"
-                              }`}
-                            />
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                    {isCancelled && cancelledAt ? (
-                      <div className="flex w-16 flex-col items-center gap-1.5 text-center">
+                {/* Below sm: a plain vertical list with the timestamp always
+                    visible -- hover doesn't work on a touchscreen, and a
+                    horizontal tree has no room to breathe on a phone. */}
+                <div className="mt-4 flex flex-col gap-2 sm:hidden">
+                  {visibleSteps.map((step) => {
+                    const reachedAt = eventTimeByStatus.get(step.status);
+                    const reached = Boolean(reachedAt);
+                    return (
+                      <div key={step.status} className="flex items-center gap-2 text-xs">
                         <span
-                          title={`Cancelled -- ${formatTimestamp(cancelledAt)}`}
-                          className="h-2.5 w-2.5 shrink-0 rounded-full bg-red-600"
+                          className={`h-2 w-2 shrink-0 rounded-full ${
+                            reached ? "bg-forest" : "bg-sand-dark/60"
+                          }`}
                         />
-                        <span className="text-[10px] uppercase leading-tight tracking-[0.06em] text-red-700">
-                          Cancelled
+                        <span
+                          className={`font-medium ${
+                            reached ? "text-text-primary" : "text-text-secondary/60"
+                          }`}
+                        >
+                          {step.label}
                         </span>
+                        {reached ? (
+                          <span className="text-text-secondary">{formatTimestamp(reachedAt!)}</span>
+                        ) : null}
                       </div>
-                    ) : null}
-                  </div>
+                    );
+                  })}
+                  {isCancelled && cancelledAt ? (
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-red-600" />
+                      <span className="font-medium text-red-700">Cancelled</span>
+                      <span className="text-text-secondary">{formatTimestamp(cancelledAt)}</span>
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* sm and up: the connected tree, timestamp on hover. */}
+                <div className="mt-4 hidden items-start sm:flex">
+                  {visibleSteps.map((step, i) => {
+                    const reachedAt = eventTimeByStatus.get(step.status);
+                    const reached = Boolean(reachedAt);
+                    const isLastVisible = i === visibleSteps.length - 1;
+                    const showConnector = !isLastVisible || isCancelled;
+                    const nextReached =
+                      !isLastVisible && eventTimeByStatus.has(visibleSteps[i + 1].status);
+
+                    return (
+                      <div key={step.status} className="flex items-start">
+                        <div className="flex w-20 flex-col items-center gap-1.5 text-center">
+                          <span
+                            title={
+                              reached
+                                ? `${step.label} -- ${formatTimestamp(reachedAt!)}`
+                                : `${step.label} -- not yet`
+                            }
+                            className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                              reached ? "bg-forest" : "bg-sand-dark/60"
+                            }`}
+                          />
+                          <span
+                            className={`text-[10px] uppercase leading-tight tracking-[0.06em] ${
+                              reached ? "text-text-primary" : "text-text-secondary/60"
+                            }`}
+                          >
+                            {step.label}
+                          </span>
+                        </div>
+                        {showConnector ? (
+                          <span
+                            className={`mt-[5px] h-px w-8 shrink-0 ${
+                              isLastVisible
+                                ? "bg-red-300"
+                                : nextReached
+                                  ? "bg-forest"
+                                  : "bg-sand-dark/60"
+                            }`}
+                          />
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                  {isCancelled && cancelledAt ? (
+                    <div className="flex w-20 flex-col items-center gap-1.5 text-center">
+                      <span
+                        title={`Cancelled -- ${formatTimestamp(cancelledAt)}`}
+                        className="h-2.5 w-2.5 shrink-0 rounded-full bg-red-600"
+                      />
+                      <span className="text-[10px] uppercase leading-tight tracking-[0.06em] text-red-700">
+                        Cancelled
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="mt-4 grid gap-6 sm:grid-cols-2">
