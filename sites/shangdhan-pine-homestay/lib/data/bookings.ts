@@ -83,5 +83,12 @@ export async function createBooking(supabase: SupabaseClient, input: CreateBooki
     if (error) throw error;
   }
 
+  // Seeds the status timeline shown on /admin/bookings -- booking.status is
+  // whatever the "status" column defaulted to (AWAITING_UPI_RECONCILIATION).
+  const { error: eventError } = await supabase
+    .from("booking_status_events")
+    .insert({ booking_id: booking.id, status: booking.status });
+  if (eventError) throw eventError;
+
   return booking;
 }

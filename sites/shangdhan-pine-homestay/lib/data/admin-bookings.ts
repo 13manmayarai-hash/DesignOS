@@ -30,6 +30,12 @@ export type AdminBookingCompliance = {
   submitted_frro: boolean;
 };
 
+export type BookingStatusEvent = {
+  id: string;
+  status: BookingStatus;
+  created_at: string;
+};
+
 export type AdminBooking = {
   id: string;
   guest_name: string;
@@ -51,6 +57,7 @@ export type AdminBooking = {
   booking_items: AdminBookingItem[];
   booking_activities: AdminBookingActivity[];
   booking_compliance: AdminBookingCompliance | null;
+  booking_status_events: BookingStatusEvent[];
 };
 
 // booking_compliance is one-to-one (booking_id is unique), but depending on
@@ -64,8 +71,11 @@ function normalizeCompliance(raw: unknown): AdminBookingCompliance | null {
 export async function getAllBookings(supabase: SupabaseClient): Promise<AdminBooking[]> {
   const { data, error } = await supabase
     .from("bookings")
-    .select("*, booking_items(*), booking_activities(*), booking_compliance(*)")
-    .order("created_at", { ascending: false });
+    .select(
+      "*, booking_items(*), booking_activities(*), booking_compliance(*), booking_status_events(*)"
+    )
+    .order("created_at", { ascending: false })
+    .order("created_at", { referencedTable: "booking_status_events", ascending: true });
   if (error) throw error;
   return (data as unknown as AdminBooking[]).map((b) => ({
     ...b,
@@ -73,6 +83,8 @@ export async function getAllBookings(supabase: SupabaseClient): Promise<AdminBoo
   }));
 }
 
+// Updates the current status and appends to the timeline in one call --
+// callers never update one without the other.
 export async function updateBookingStatus(
   supabase: SupabaseClient,
   bookingId: string,
@@ -80,6 +92,11 @@ export async function updateBookingStatus(
 ) {
   const { error } = await supabase.from("bookings").update({ status }).eq("id", bookingId);
   if (error) throw error;
+
+  const { error: eventError } = await supabase
+    .from("booking_status_events")
+    .insert({ booking_id: bookingId, status });
+  if (eventError) throw eventError;
 }
 
 export async function markFrroSubmitted(

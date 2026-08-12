@@ -106,6 +106,27 @@ create table if not exists booking_compliance (
   created_at timestamptz not null default now()
 );
 
+-- One row per status transition a booking goes through (paid/confirmed,
+-- checked in, checked out, cancelled...), so /admin/bookings can show a
+-- timestamped timeline instead of just the current status. bookings.status
+-- stays the single source of truth for "what is it right now"; this table
+-- is purely an append-only log alongside it.
+create table if not exists booking_status_events (
+  id uuid primary key default gen_random_uuid(),
+  booking_id uuid not null references bookings(id) on delete cascade,
+  status text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists booking_status_events_booking_id_idx
+  on booking_status_events(booking_id);
+
+alter table booking_status_events drop constraint if exists booking_status_events_status_check;
+alter table booking_status_events add constraint booking_status_events_status_check
+  check (status in (
+    'AWAITING_UPI_RECONCILIATION', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED'
+  ));
+
 -- Single-row settings the owner edits from /admin/settings instead of a
 -- code change: GST registration status and the uploaded UPI payment QR
 -- code image. The boolean primary key + check(id) trick caps this table
@@ -201,6 +222,7 @@ alter table bookings enable row level security;
 alter table booking_items enable row level security;
 alter table booking_activities enable row level security;
 alter table booking_compliance enable row level security;
+alter table booking_status_events enable row level security;
 alter table settings enable row level security;
 
 -- RLS policies only filter rows within what a role is already granted at
@@ -209,8 +231,8 @@ alter table settings enable row level security;
 grant usage on schema public to anon, authenticated;
 grant select on rooms, room_images, gallery_images, activities to anon, authenticated;
 grant insert, update, delete on rooms, room_images, gallery_images, activities to authenticated;
-grant insert on bookings, booking_items, booking_activities, booking_compliance to anon, authenticated;
-grant select, update, delete on bookings, booking_items, booking_activities, booking_compliance to authenticated;
+grant insert on bookings, booking_items, booking_activities, booking_compliance, booking_status_events to anon, authenticated;
+grant select, update, delete on bookings, booking_items, booking_activities, booking_compliance, booking_status_events to authenticated;
 grant select on settings to anon, authenticated;
 grant update on settings to authenticated;
 
@@ -286,6 +308,15 @@ create policy "anyone can submit booking compliance" on booking_compliance
 
 drop policy if exists "admin full access to booking compliance" on booking_compliance;
 create policy "admin full access to booking compliance" on booking_compliance
+  for all using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+drop policy if exists "anyone can submit booking status events" on booking_status_events;
+create policy "anyone can submit booking status events" on booking_status_events
+  for insert with check (true);
+
+drop policy if exists "admin full access to booking status events" on booking_status_events;
+create policy "admin full access to booking status events" on booking_status_events
   for all using (auth.role() = 'authenticated')
   with check (auth.role() = 'authenticated');
 

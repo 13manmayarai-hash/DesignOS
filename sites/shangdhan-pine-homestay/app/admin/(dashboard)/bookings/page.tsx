@@ -15,6 +15,16 @@ const STATUS_STYLE: Record<BookingStatus, string> = {
   CANCELLED: "bg-red-100 text-red-700",
 };
 
+// The initial AWAITING_UPI_RECONCILIATION event is skipped in the timeline
+// below -- it's already covered by the "requested <time>" line near the
+// top of the card, so listing it again would be redundant.
+const STATUS_EVENT_LABEL: Partial<Record<BookingStatus, string>> = {
+  CONFIRMED: "Payment confirmed",
+  CHECKED_IN: "Checked in",
+  CHECKED_OUT: "Checked out",
+  CANCELLED: "Cancelled",
+};
+
 function formatInr(amount: number) {
   return `Rs ${new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}`;
 }
@@ -160,6 +170,28 @@ export default async function AdminBookingsPage() {
                     ) : null}
                   </div>
                 </div>
+
+                {booking.booking_status_events.some((e) => STATUS_EVENT_LABEL[e.status]) ? (
+                  <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 border-t border-border-default pt-4">
+                    {booking.booking_status_events
+                      .filter((event) => STATUS_EVENT_LABEL[event.status])
+                      .map((event) => (
+                        <div key={event.id} className="flex items-center gap-2 text-xs">
+                          <span
+                            className={`h-2 w-2 shrink-0 rounded-full ${
+                              event.status === "CANCELLED" ? "bg-red-600" : "bg-forest"
+                            }`}
+                          />
+                          <span className="font-medium text-text-primary">
+                            {STATUS_EVENT_LABEL[event.status]}
+                          </span>
+                          <span className="text-text-secondary">
+                            {new Date(event.created_at).toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                ) : null}
 
                 <form
                   action={async (formData: FormData) => {
