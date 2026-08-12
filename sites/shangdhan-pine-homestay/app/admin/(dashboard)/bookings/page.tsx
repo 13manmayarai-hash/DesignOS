@@ -15,18 +15,22 @@ const STATUS_STYLE: Record<BookingStatus, string> = {
   CANCELLED: "bg-red-100 text-red-700",
 };
 
-// The initial AWAITING_UPI_RECONCILIATION event is skipped in the timeline
-// below -- it's already covered by the "requested <time>" line near the
-// top of the card, so listing it again would be redundant.
-const STATUS_EVENT_LABEL: Partial<Record<BookingStatus, string>> = {
-  CONFIRMED: "Payment confirmed",
-  CHECKED_IN: "Checked in",
-  CHECKED_OUT: "Checked out",
-  CANCELLED: "Cancelled",
-};
+// The linear path every booking follows, left to right. CANCELLED isn't in
+// here -- it can branch off after any of these steps, so it's rendered
+// separately as the tree's alternate ending rather than a fixed 5th step.
+const TIMELINE_STEPS: { status: BookingStatus; label: string }[] = [
+  { status: "AWAITING_UPI_RECONCILIATION", label: "Requested" },
+  { status: "CONFIRMED", label: "Payment confirmed" },
+  { status: "CHECKED_IN", label: "Checked in" },
+  { status: "CHECKED_OUT", label: "Checked out" },
+];
 
 function formatInr(amount: number) {
   return `Rs ${new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)}`;
+}
+
+function formatTimestamp(iso: string) {
+  return new Date(iso).toLocaleString("en-IN");
 }
 
 export default async function AdminBookingsPage() {
@@ -71,6 +75,24 @@ export default async function AdminBookingsPage() {
             const idProofUrl = idProofUrls.get(booking.id);
             const isForeign = booking.guest_nationality !== "Indian";
 
+            // Events are already sorted oldest-first (see getAllBookings),
+            // so this ends up holding the most recent timestamp per status.
+            const eventTimeByStatus = new Map<BookingStatus, string>();
+            for (const event of booking.booking_status_events) {
+              eventTimeByStatus.set(event.status, event.created_at);
+            }
+            const isCancelled = booking.status === "CANCELLED";
+            const lastReachedIndex = TIMELINE_STEPS.reduce(
+              (acc, step, i) => (eventTimeByStatus.has(step.status) ? i : acc),
+              0
+            );
+            // Once cancelled, the tree branches off instead of continuing --
+            // steps that were never going to happen aren't shown as pending.
+            const visibleSteps = isCancelled
+              ? TIMELINE_STEPS.slice(0, lastReachedIndex + 1)
+              : TIMELINE_STEPS;
+            const cancelledAt = eventTimeByStatus.get("CANCELLED");
+
             return (
               <div key={booking.id} className="border border-border-default bg-surface p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -95,6 +117,65 @@ export default async function AdminBookingsPage() {
                   <p className="font-display text-2xl text-text-primary">
                     {formatInr(booking.total_amount)}
                   </p>
+                </div>
+
+                <div className="mt-4 overflow-x-auto">
+                  <div className="flex w-max items-start">
+                    {visibleSteps.map((step, i) => {
+                      const reachedAt = eventTimeByStatus.get(step.status);
+                      const reached = Boolean(reachedAt);
+                      const isLastVisible = i === visibleSteps.length - 1;
+                      const showConnector = !isLastVisible || isCancelled;
+                      const nextReached =
+                        !isLastVisible && eventTimeByStatus.has(visibleSteps[i + 1].status);
+
+                      return (
+                        <div key={step.status} className="flex items-start">
+                          <div className="flex w-16 flex-col items-center gap-1.5 text-center">
+                            <span
+                              title={
+                                reached
+                                  ? `${step.label} -- ${formatTimestamp(reachedAt!)}`
+                                  : `${step.label} -- not yet`
+                              }
+                              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                                reached ? "bg-forest" : "bg-sand-dark/60"
+                              }`}
+                            />
+                            <span
+                              className={`text-[10px] uppercase leading-tight tracking-[0.06em] ${
+                                reached ? "text-text-primary" : "text-text-secondary/60"
+                              }`}
+                            >
+                              {step.label}
+                            </span>
+                          </div>
+                          {showConnector ? (
+                            <span
+                              className={`mt-[5px] h-px w-4 shrink-0 sm:w-8 ${
+                                isLastVisible
+                                  ? "bg-red-300"
+                                  : nextReached
+                                    ? "bg-forest"
+                                    : "bg-sand-dark/60"
+                              }`}
+                            />
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                    {isCancelled && cancelledAt ? (
+                      <div className="flex w-16 flex-col items-center gap-1.5 text-center">
+                        <span
+                          title={`Cancelled -- ${formatTimestamp(cancelledAt)}`}
+                          className="h-2.5 w-2.5 shrink-0 rounded-full bg-red-600"
+                        />
+                        <span className="text-[10px] uppercase leading-tight tracking-[0.06em] text-red-700">
+                          Cancelled
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="mt-4 grid gap-6 sm:grid-cols-2">
@@ -170,28 +251,6 @@ export default async function AdminBookingsPage() {
                     ) : null}
                   </div>
                 </div>
-
-                {booking.booking_status_events.some((e) => STATUS_EVENT_LABEL[e.status]) ? (
-                  <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 border-t border-border-default pt-4">
-                    {booking.booking_status_events
-                      .filter((event) => STATUS_EVENT_LABEL[event.status])
-                      .map((event) => (
-                        <div key={event.id} className="flex items-center gap-2 text-xs">
-                          <span
-                            className={`h-2 w-2 shrink-0 rounded-full ${
-                              event.status === "CANCELLED" ? "bg-red-600" : "bg-forest"
-                            }`}
-                          />
-                          <span className="font-medium text-text-primary">
-                            {STATUS_EVENT_LABEL[event.status]}
-                          </span>
-                          <span className="text-text-secondary">
-                            {new Date(event.created_at).toLocaleString("en-IN")}
-                          </span>
-                        </div>
-                      ))}
-                  </div>
-                ) : null}
 
                 <form
                   action={async (formData: FormData) => {
