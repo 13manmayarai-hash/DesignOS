@@ -119,6 +119,104 @@ function MediaField({
   );
 }
 
+// Reference sketch of where each numbered element sits on the public hero.
+// Not a literal screenshot -- the headline, sight cards, and both story
+// panels never appear on screen at the same time -- but a stable spatial
+// map is more useful while editing than the numbers alone.
+const WIREFRAME_STAGE_PINS = [
+  { n: 13, x: 32, y: 26, label: "Header label" },
+  { n: 1, x: 80, y: 60, label: "Sky" },
+  { n: 2, x: 520, y: 70, label: "Glow" },
+  { n: 4, x: 300, y: 118, label: "Headline" },
+  { n: 5, x: 300, y: 196, label: "Intro + tags" },
+  { n: 6, x: 150, y: 300, label: "Split left" },
+  { n: 7, x: 450, y: 300, label: "Split right" },
+  { n: 8, x: 300, y: 288, label: "Main image" },
+  { n: 9, x: 360, y: 336, label: "Close-up" },
+  { n: 3, x: 90, y: 350, label: "Mid-ground" },
+  { n: 10, x: 300, y: 408, label: "Sight cards" },
+];
+
+function CinematicWireframe() {
+  return (
+    <div className="border border-border-default bg-warm-white p-5">
+      <p className={labelClass}>Reference wireframe</p>
+      <p className="mt-1 max-w-2xl text-xs text-text-secondary">
+        Where each numbered field below actually appears on the hero. The headline, sight cards,
+        and the two story panels are staggered across the scroll, not simultaneous -- they&apos;re
+        placed together here just to keep every number in one map.
+      </p>
+
+      <svg
+        viewBox="0 0 900 460"
+        role="img"
+        aria-label="Wireframe of the cinematic hero showing where each of the 13 numbered elements appears"
+        className="mt-4 w-full max-w-3xl"
+      >
+        <rect x="0" y="0" width="600" height="460" className="fill-sand" />
+        <circle cx="520" cy="70" r="46" className="fill-gold" opacity="0.35" />
+        <polygon points="0,330 90,300 180,326 260,304 340,330 600,340 600,460 0,460" className="fill-sand-dark" opacity="0.7" />
+        <text x="300" y="132" textAnchor="middle" className="fill-text-primary font-display" fontSize="34" fontWeight="600">
+          HEADLINE
+        </text>
+        <text x="300" y="180" textAnchor="middle" className="fill-text-secondary" fontSize="10">
+          Intro paragraph
+        </text>
+        <rect x="220" y="192" width="70" height="18" rx="9" className="fill-warm-white stroke-border-default" />
+        <rect x="300" y="192" width="70" height="18" rx="9" className="fill-warm-white stroke-border-default" />
+        <rect x="380" y="192" width="70" height="18" rx="9" className="fill-warm-white stroke-border-default" />
+        <rect x="110" y="250" width="90" height="110" className="fill-forest" opacity="0.25" />
+        <rect x="400" y="250" width="90" height="110" className="fill-forest" opacity="0.25" />
+        <ellipse cx="300" cy="310" rx="70" ry="88" className="fill-gold-ink" opacity="0.3" />
+        <circle cx="330" cy="345" r="46" className="fill-charcoal" opacity="0.18" />
+        <rect x="130" y="392" width="90" height="46" rx="6" className="fill-warm-white stroke-border-default" />
+        <rect x="230" y="392" width="90" height="46" rx="6" className="fill-warm-white stroke-border-default" />
+        <rect x="330" y="392" width="90" height="46" rx="6" className="fill-warm-white stroke-border-default" />
+        <rect x="430" y="392" width="90" height="46" rx="6" className="fill-warm-white stroke-border-default" opacity="0.6" />
+
+        {WIREFRAME_STAGE_PINS.map((pin) => (
+          <g key={pin.n}>
+            <circle cx={pin.x} cy={pin.y} r="12" className="fill-charcoal" />
+            <text x={pin.x} y={pin.y + 4} textAnchor="middle" className="fill-warm-white" fontSize="11" fontWeight="700">
+              {pin.n}
+            </text>
+          </g>
+        ))}
+
+        <rect x="624" y="24" width="252" height="150" className="fill-warm-white stroke-border-default" />
+        <circle cx="646" cy="46" r="12" className="fill-charcoal" />
+        <text x="646" y="50" textAnchor="middle" className="fill-warm-white" fontSize="11" fontWeight="700">
+          11
+        </text>
+        <text x="668" y="50" className="fill-text-primary" fontSize="11" fontWeight="600">
+          Story panel 1
+        </text>
+        <text x="646" y="80" className="fill-text-secondary" fontSize="9">
+          Heading, paragraph,
+        </text>
+        <text x="646" y="94" className="fill-text-secondary" fontSize="9">
+          two stat facts
+        </text>
+
+        <rect x="624" y="196" width="252" height="150" className="fill-warm-white stroke-border-default" />
+        <circle cx="646" cy="218" r="12" className="fill-charcoal" />
+        <text x="646" y="222" textAnchor="middle" className="fill-warm-white" fontSize="11" fontWeight="700">
+          12
+        </text>
+        <text x="668" y="222" className="fill-text-primary" fontSize="11" fontWeight="600">
+          Story panel 2
+        </text>
+        <text x="646" y="252" className="fill-text-secondary" fontSize="9">
+          Heading, paragraph,
+        </text>
+        <text x="646" y="266" className="fill-text-secondary" fontSize="9">
+          CTA button label
+        </text>
+      </svg>
+    </div>
+  );
+}
+
 export default async function AdminCinematicPage() {
   const supabase = await createClient();
   const [hero, sightCards] = await Promise.all([
@@ -136,6 +234,8 @@ export default async function AdminCinematicPage() {
           content -- nothing here goes live on its own yet.
         </p>
       </div>
+
+      <CinematicWireframe />
 
       <section className="space-y-4">
         <h2 className="font-display text-xl text-text-primary">Header</h2>
