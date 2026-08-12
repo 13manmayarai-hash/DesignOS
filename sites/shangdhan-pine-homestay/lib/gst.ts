@@ -52,3 +52,7 @@ export const GST_STATE_OPTIONS = [
   { label: "Tamil Nadu", value: "33" },
   { label: "Other / not sure", value: "00" },
 ];
+
+export function gstStateLabel(code: string | null): string {
+  return GST_STATE_OPTIONS.find((option) => option.value === code)?.label ?? "Other / not sure";
+}

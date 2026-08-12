@@ -47,6 +47,8 @@ export function BookingFlow({
 
   const [passportNumber, setPassportNumber] = useState("");
   const [visaNumber, setVisaNumber] = useState("");
+  const [arrivalDateIndia, setArrivalDateIndia] = useState("");
+  const [nextDestination, setNextDestination] = useState("");
   const [idProofFile, setIdProofFile] = useState<File | null>(null);
 
   const [utrNumber, setUtrNumber] = useState("");
@@ -158,7 +160,10 @@ export function BookingFlow({
     guestName.trim() &&
     guestPhone.trim() &&
     !hasUnavailableSelection;
-  const step2Valid = idProofFile !== null && (!isForeign || (passportNumber.trim() && visaNumber.trim()));
+  const step2Valid =
+    idProofFile !== null &&
+    (!isForeign ||
+      (passportNumber.trim() && visaNumber.trim() && arrivalDateIndia && nextDestination.trim()));
 
   async function handleConfirm() {
     setSubmitting(true);
@@ -191,6 +196,8 @@ export function BookingFlow({
     formData.set("utrNumber", utrNumber);
     formData.set("passportNumber", passportNumber);
     formData.set("visaNumber", visaNumber);
+    formData.set("arrivalDateIndia", arrivalDateIndia);
+    formData.set("nextDestination", nextDestination);
     if (idProofFile) formData.set("idProofFile", idProofFile);
 
     const res = await submitBookingAction(formData);
@@ -523,7 +530,35 @@ export function BookingFlow({
                       className={inputClass}
                     />
                   </div>
+                  <div>
+                    <label htmlFor="arrivalDateIndia" className={labelClass}>
+                      Date of arrival in India
+                    </label>
+                    <input
+                      id="arrivalDateIndia"
+                      type="date"
+                      value={arrivalDateIndia}
+                      onChange={(e) => setArrivalDateIndia(e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="nextDestination" className={labelClass}>
+                      Next destination after this stay
+                    </label>
+                    <input
+                      id="nextDestination"
+                      value={nextDestination}
+                      onChange={(e) => setNextDestination(e.target.value)}
+                      placeholder="e.g. Darjeeling, or Return home"
+                      className={inputClass}
+                    />
+                  </div>
                 </div>
+                <p className="mt-3 text-xs text-text-secondary">
+                  Required on Form C, the FRRO filing for foreign guests at Indian
+                  accommodations.
+                </p>
               </div>
             ) : null}
 

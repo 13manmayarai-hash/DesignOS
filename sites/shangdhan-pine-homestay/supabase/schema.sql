@@ -106,6 +106,15 @@ create table if not exists booking_compliance (
   created_at timestamptz not null default now()
 );
 
+-- Form C (the actual FRRO filing for foreign guests) also asks for the
+-- guest's arrival date in India and their next destination after leaving
+-- this property, not just passport/visa -- added after comparing against
+-- HomestayOS's FormCLog model. alter+add rather than folded into the
+-- create table above, so this stays safe to re-run against a database
+-- that already has the table from before this column existed.
+alter table booking_compliance add column if not exists arrival_date_india date;
+alter table booking_compliance add column if not exists next_destination text;
+
 -- One row per status transition a booking goes through (paid/confirmed,
 -- checked in, checked out, cancelled...), so /admin/bookings can show a
 -- timestamped timeline instead of just the current status. bookings.status
@@ -182,6 +191,55 @@ create table if not exists cinematic_sight_cards (
 create index if not exists cinematic_sight_cards_sort_order_idx
   on cinematic_sight_cards(sort_order);
 
+-- Owner-side date blocking (maintenance, personal use, anything not tied
+-- to a guest booking) -- adapted from HomestayOS's per-day BlockedDate
+-- model, but stored as a range per row rather than one row per day, since
+-- an admin blocking "Dec 20-27" shouldn't mean inserting 7 rows by hand.
+-- is_room_available() (below) checks this the same way it checks bookings.
+create table if not exists room_blocked_ranges (
+  id uuid primary key default gen_random_uuid(),
+  room_id uuid not null references rooms(id) on delete cascade,
+  start_date date not null,
+  end_date date not null,
+  reason text,
+  created_at timestamptz not null default now(),
+  constraint room_blocked_ranges_valid_range check (end_date > start_date)
+);
+
+create index if not exists room_blocked_ranges_room_id_idx on room_blocked_ranges(room_id);
+
+-- GST invoice PDFs, one per booking -- adapted from HomestayOS's Invoice
+-- model. Line-item amounts (accommodation/activities totals, CGST/SGST/
+-- IGST) aren't duplicated here: they already live on bookings and never
+-- change after a booking is created, so the PDF template reads them
+-- straight from there. This table just tracks the generated invoice
+-- number and where its PDF landed in storage.
+create table if not exists invoices (
+  id uuid primary key default gen_random_uuid(),
+  booking_id uuid not null unique references bookings(id) on delete cascade,
+  invoice_number text not null unique,
+  pdf_storage_path text not null,
+  created_at timestamptz not null default now()
+);
+
+-- Backs invoice numbers in the form INV-{year}-{5-digit sequence}, e.g.
+-- INV-2026-00042. A DB sequence (rather than counting existing rows) keeps
+-- numbers gapless-but-never-reused even if an invoice row is later deleted.
+create sequence if not exists invoice_number_seq start 1;
+
+create or replace function next_invoice_number()
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  return 'INV-' || to_char(now(), 'YYYY') || '-' || lpad(nextval('invoice_number_seq')::text, 5, '0');
+end;
+$$;
+
+grant execute on function next_invoice_number() to authenticated;
+
 -- Single-row settings the owner edits from /admin/settings instead of a
 -- code change: GST registration status and the uploaded UPI payment QR
 -- code image. The boolean primary key + check(id) trick caps this table
@@ -245,6 +303,8 @@ create trigger cinematic_hero_set_updated_at
 -- function owner, bypassing RLS just for this narrow yes/no computation.
 -- A booking blocks the room until it's CANCELLED; AWAITING_UPI_RECONCILIATION
 -- counts as booked so two guests can't both be sent to pay for the same room.
+-- Also checks room_blocked_ranges, so an owner-blocked stretch (maintenance,
+-- personal use) is just as unbookable as an actual guest booking.
 create or replace function is_room_available(p_room_id uuid, p_check_in date, p_check_out date)
 returns boolean
 language sql
@@ -259,6 +319,13 @@ as $$
       and b.status != 'CANCELLED'
       and b.check_in < p_check_out
       and b.check_out > p_check_in
+  )
+  and not exists (
+    select 1
+    from room_blocked_ranges r
+    where r.room_id = p_room_id
+      and r.start_date < p_check_out
+      and r.end_date > p_check_in
   );
 $$;
 
@@ -285,7 +352,9 @@ alter table booking_compliance enable row level security;
 alter table booking_status_events enable row level security;
 alter table cinematic_hero enable row level security;
 alter table cinematic_sight_cards enable row level security;
+alter table room_blocked_ranges enable row level security;
 alter table settings enable row level security;
+alter table invoices enable row level security;
 
 -- RLS policies only filter rows within what a role is already granted at
 -- the table level -- they don't grant access themselves. Some Supabase
@@ -300,6 +369,12 @@ grant update on settings to authenticated;
 grant select on cinematic_hero, cinematic_sight_cards to anon, authenticated;
 grant update on cinematic_hero to authenticated;
 grant insert, update, delete on cinematic_sight_cards to authenticated;
+-- No anon grant here -- guests never query room_blocked_ranges directly,
+-- only is_room_available() does, as SECURITY DEFINER bypassing RLS.
+grant select, insert, update, delete on room_blocked_ranges to authenticated;
+-- Invoices are never guest-facing -- no anon grant at all, admin-only both
+-- ways, same as room_blocked_ranges above.
+grant select, insert, update, delete on invoices to authenticated;
 
 drop policy if exists "public can read published rooms" on rooms;
 create policy "public can read published rooms" on rooms
@@ -416,6 +491,20 @@ create policy "admin full access to sight cards" on cinematic_sight_cards
   for all using (auth.role() = 'authenticated')
   with check (auth.role() = 'authenticated');
 
+-- Blocked ranges are never read directly by guests -- only through
+-- is_room_available() -- so this is admin-only in both directions.
+drop policy if exists "admin full access to room blocked ranges" on room_blocked_ranges;
+create policy "admin full access to room blocked ranges" on room_blocked_ranges
+  for all using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+-- Invoices carry a guest's billing details -- admin-only in both
+-- directions, no guest-facing read path at all.
+drop policy if exists "admin full access to invoices" on invoices;
+create policy "admin full access to invoices" on invoices
+  for all using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
 -- ============================================================================
 -- Storage buckets
 --
@@ -497,3 +586,16 @@ drop policy if exists "admin can manage cinematic media" on storage.objects;
 create policy "admin can manage cinematic media" on storage.objects
   for all using (bucket_id = 'cinematic-media' and auth.role() = 'authenticated')
   with check (bucket_id = 'cinematic-media' and auth.role() = 'authenticated');
+
+-- Generated GST invoice PDFs -- private like guest-documents (these carry
+-- a guest's billing details), but unlike guest-documents there's no public
+-- insert policy either: only the admin ever creates an invoice, so
+-- admin-only covers both generating and viewing.
+insert into storage.buckets (id, name, public)
+values ('invoices', 'invoices', false)
+on conflict (id) do nothing;
+
+drop policy if exists "admin can manage invoices" on storage.objects;
+create policy "admin can manage invoices" on storage.objects
+  for all using (bucket_id = 'invoices' and auth.role() = 'authenticated')
+  with check (bucket_id = 'invoices' and auth.role() = 'authenticated');

@@ -27,6 +27,8 @@ export type AdminBookingCompliance = {
   passport_number: string | null;
   visa_number: string | null;
   id_proof_storage_path: string | null;
+  arrival_date_india: string | null;
+  next_destination: string | null;
   submitted_frro: boolean;
 };
 
@@ -81,6 +83,25 @@ export async function getAllBookings(supabase: SupabaseClient): Promise<AdminBoo
     ...b,
     booking_compliance: normalizeCompliance(b.booking_compliance),
   }));
+}
+
+// Single-booking fetch for invoice generation -- getAllBookings pulls every
+// booking with its full relations, too heavy to call just to render one PDF.
+export async function getBookingById(
+  supabase: SupabaseClient,
+  bookingId: string
+): Promise<AdminBooking | null> {
+  const { data, error } = await supabase
+    .from("bookings")
+    .select(
+      "*, booking_items(*), booking_activities(*), booking_compliance(*), booking_status_events(*)"
+    )
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const booking = data as unknown as AdminBooking;
+  return { ...booking, booking_compliance: normalizeCompliance(booking.booking_compliance) };
 }
 
 // Updates the current status and appends to the timeline in one call --

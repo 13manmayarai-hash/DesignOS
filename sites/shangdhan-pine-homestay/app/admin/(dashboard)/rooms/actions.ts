@@ -12,6 +12,7 @@ import {
   type RoomInput,
 } from "@/lib/data/rooms";
 import { randomStoragePath } from "@/lib/storage";
+import { createBlockedRange, deleteBlockedRange } from "@/lib/data/blocked-dates";
 
 function parseRoomInput(formData: FormData): RoomInput {
   const rentAmountRaw = formData.get("rent_amount");
@@ -104,4 +105,29 @@ export async function moveRoomImageAction(
   await moveRoomImage(supabase, roomId, imageId, direction);
   revalidatePath("/admin/rooms");
   revalidatePath("/");
+}
+
+export async function createBlockedRangeAction(roomId: string, formData: FormData) {
+  await requireUser();
+  const supabase = await createClient();
+
+  const startDate = String(formData.get("startDate") ?? "");
+  const endDate = String(formData.get("endDate") ?? "");
+  if (!startDate || !endDate) throw new Error("Start and end date are required");
+  if (endDate <= startDate) throw new Error("End date must be after start date");
+
+  await createBlockedRange(supabase, {
+    roomId,
+    startDate,
+    endDate,
+    reason: String(formData.get("reason") ?? "").trim() || null,
+  });
+  revalidatePath("/admin/rooms");
+}
+
+export async function deleteBlockedRangeAction(id: string) {
+  await requireUser();
+  const supabase = await createClient();
+  await deleteBlockedRange(supabase, id);
+  revalidatePath("/admin/rooms");
 }

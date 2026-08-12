@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAllBookings, BOOKING_STATUSES, type BookingStatus } from "@/lib/data/admin-bookings";
-import { createSignedGuestDocumentUrl } from "@/lib/storage";
-import { updateBookingStatusAction, markFrroSubmittedAction } from "./actions";
+import { getAllInvoices } from "@/lib/data/invoices";
+import { createSignedGuestDocumentUrl, createSignedInvoiceUrl } from "@/lib/storage";
+import { SubmitButton } from "../_components/SubmitButton";
+import { updateBookingStatusAction, markFrroSubmittedAction, generateInvoiceAction } from "./actions";
 
 const inputClass =
   "mt-1.5 border border-border-default bg-warm-white px-3 py-2 text-sm text-text-primary outline-none focus:border-gold-ink";
@@ -35,9 +37,11 @@ function formatTimestamp(iso: string) {
 
 export default async function AdminBookingsPage() {
   const supabase = await createClient();
-  const bookings = await getAllBookings(supabase);
+  const [bookings, invoices] = await Promise.all([getAllBookings(supabase), getAllInvoices(supabase)]);
+  const invoiceByBooking = new Map(invoices.map((invoice) => [invoice.booking_id, invoice]));
 
   const idProofUrls = new Map<string, string>();
+  const invoiceUrls = new Map<string, string>();
   for (const booking of bookings) {
     const path = booking.booking_compliance?.id_proof_storage_path;
     if (path) {
@@ -46,6 +50,15 @@ export default async function AdminBookingsPage() {
       } catch {
         // Signed URL generation failing shouldn't take down the whole page --
         // the admin just won't see a working link for that one document.
+      }
+    }
+    const invoice = invoiceByBooking.get(booking.id);
+    if (invoice) {
+      try {
+        invoiceUrls.set(booking.id, await createSignedInvoiceUrl(supabase, invoice.pdf_storage_path));
+      } catch {
+        // Same as above -- a broken signed URL for one invoice shouldn't
+        // take down the whole bookings page.
       }
     }
   }
@@ -81,6 +94,10 @@ export default async function AdminBookingsPage() {
             for (const event of booking.booking_status_events) {
               eventTimeByStatus.set(event.status, event.created_at);
             }
+            const invoice = invoiceByBooking.get(booking.id);
+            const invoiceUrl = invoiceUrls.get(booking.id);
+            const canInvoice =
+              booking.status !== "AWAITING_UPI_RECONCILIATION" && booking.status !== "CANCELLED";
             const isCancelled = booking.status === "CANCELLED";
             const lastReachedIndex = TIMELINE_STEPS.reduce(
               (acc, step, i) => (eventTimeByStatus.has(step.status) ? i : acc),
@@ -249,6 +266,14 @@ export default async function AdminBookingsPage() {
                       <div className="mt-1.5 space-y-1 text-sm text-text-primary">
                         <p>Passport: {booking.booking_compliance?.passport_number || "not provided"}</p>
                         <p>Visa: {booking.booking_compliance?.visa_number || "not provided"}</p>
+                        <p>
+                          Arrived in India:{" "}
+                          {booking.booking_compliance?.arrival_date_india || "not provided"}
+                        </p>
+                        <p>
+                          Next destination:{" "}
+                          {booking.booking_compliance?.next_destination || "not provided"}
+                        </p>
                       </div>
                     ) : (
                       <p className="mt-1.5 text-sm text-text-secondary">Indian guest -- no FRRO/Form-C needed.</p>
@@ -285,6 +310,46 @@ export default async function AdminBookingsPage() {
                       </form>
                     ) : null}
                   </div>
+                </div>
+
+                <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border-default pt-4">
+                  <p className={labelClass}>Invoice</p>
+                  {invoice ? (
+                    <>
+                      <span className="text-sm text-text-primary">{invoice.invoice_number}</span>
+                      {invoiceUrl ? (
+                        <a
+                          href={invoiceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-gold-ink underline underline-offset-2 hover:text-text-primary"
+                        >
+                          View PDF
+                        </a>
+                      ) : null}
+                      <form action={generateInvoiceAction.bind(null, booking.id)}>
+                        <SubmitButton
+                          pendingLabel="Regenerating..."
+                          className="text-xs font-medium uppercase tracking-[0.1em] text-text-secondary hover:text-text-primary"
+                        >
+                          Regenerate
+                        </SubmitButton>
+                      </form>
+                    </>
+                  ) : canInvoice ? (
+                    <form action={generateInvoiceAction.bind(null, booking.id)}>
+                      <SubmitButton
+                        pendingLabel="Generating..."
+                        className="border border-charcoal/25 px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-text-primary hover:border-charcoal/50"
+                      >
+                        Generate invoice
+                      </SubmitButton>
+                    </form>
+                  ) : (
+                    <span className="text-sm text-text-secondary">
+                      Available once payment is confirmed.
+                    </span>
+                  )}
                 </div>
 
                 <form

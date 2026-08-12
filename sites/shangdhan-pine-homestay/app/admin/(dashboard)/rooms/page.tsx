@@ -1,7 +1,9 @@
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { getAllRooms } from "@/lib/data/rooms";
+import { getAllBlockedRanges } from "@/lib/data/blocked-dates";
 import { publicImageUrl } from "@/lib/storage";
+import { SubmitButton } from "../_components/SubmitButton";
 import {
   createRoomAction,
   deleteRoomAction,
@@ -9,6 +11,8 @@ import {
   moveRoomImageAction,
   updateRoomAction,
   uploadRoomImageAction,
+  createBlockedRangeAction,
+  deleteBlockedRangeAction,
 } from "./actions";
 
 const inputClass =
@@ -17,7 +21,10 @@ const labelClass = "block text-xs font-medium uppercase tracking-[0.1em] text-te
 
 export default async function AdminRoomsPage() {
   const supabase = await createClient();
-  const rooms = await getAllRooms(supabase);
+  const [rooms, allBlockedRanges] = await Promise.all([
+    getAllRooms(supabase),
+    getAllBlockedRanges(supabase),
+  ]);
 
   return (
     <div className="space-y-12">
@@ -140,6 +147,70 @@ export default async function AdminRoomsPage() {
                 >
                   Upload
                 </button>
+              </form>
+            </div>
+
+            <div className="mt-8 border-t border-border-default pt-6">
+              <h4 className={labelClass}>Blocked dates</h4>
+              <p className="mt-1 text-xs text-text-secondary">
+                Take this room off the market for a stretch of time -- maintenance, personal
+                use, anything not tied to a guest booking. Guests can&apos;t book over a blocked
+                range.
+              </p>
+
+              {(() => {
+                const roomBlockedRanges = allBlockedRanges.filter((r) => r.room_id === room.id);
+                return roomBlockedRanges.length === 0 ? (
+                  <p className="mt-3 text-sm text-text-secondary">No blocked dates for this room.</p>
+                ) : (
+                  <ul className="mt-3 space-y-2">
+                    {roomBlockedRanges.map((range) => (
+                      <li
+                        key={range.id}
+                        className="flex items-center justify-between gap-3 border border-border-default bg-sand/20 px-3 py-2 text-sm"
+                      >
+                        <span className="text-text-primary">
+                          {range.start_date} &rarr; {range.end_date}
+                          {range.reason ? (
+                            <span className="text-text-secondary"> -- {range.reason}</span>
+                          ) : null}
+                        </span>
+                        <form action={deleteBlockedRangeAction.bind(null, range.id)}>
+                          <SubmitButton
+                            pendingLabel="Removing..."
+                            className="text-xs font-medium text-red-700 hover:underline"
+                          >
+                            Remove
+                          </SubmitButton>
+                        </form>
+                      </li>
+                    ))}
+                  </ul>
+                );
+              })()}
+
+              <form
+                action={createBlockedRangeAction.bind(null, room.id)}
+                className="mt-4 flex flex-wrap items-end gap-3"
+              >
+                <div>
+                  <label className={labelClass}>Start date</label>
+                  <input type="date" name="startDate" required className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>End date</label>
+                  <input type="date" name="endDate" required className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Reason (optional)</label>
+                  <input name="reason" placeholder="e.g. Maintenance" className={inputClass} />
+                </div>
+                <SubmitButton
+                  pendingLabel="Blocking..."
+                  className="border border-charcoal px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-charcoal hover:bg-charcoal hover:text-warm-white"
+                >
+                  Block dates
+                </SubmitButton>
               </form>
             </div>
           </div>

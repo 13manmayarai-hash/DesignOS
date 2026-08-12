@@ -29,3 +29,18 @@ export async function createSignedGuestDocumentUrl(
   if (error) throw error;
   return data.signedUrl;
 }
+
+// invoices is private for the same reason -- guest billing details, admin
+// view only. Longer expiry than the ID-document link above since an admin
+// opening an invoice link is a routine action, not a one-off ID check.
+export async function createSignedInvoiceUrl(
+  supabase: import("@supabase/supabase-js").SupabaseClient,
+  storagePath: string,
+  expiresInSeconds = 3600
+) {
+  const { data, error } = await supabase.storage
+    .from("invoices")
+    .createSignedUrl(storagePath, expiresInSeconds);
+  if (error) throw error;
+  return data.signedUrl;
+}

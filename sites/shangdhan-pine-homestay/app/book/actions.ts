@@ -77,6 +77,8 @@ export async function submitBookingAction(formData: FormData): Promise<SubmitBoo
               passportNumber: String(formData.get("passportNumber") ?? "") || null,
               visaNumber: String(formData.get("visaNumber") ?? "") || null,
               idProofStoragePath,
+              arrivalDateIndia: String(formData.get("arrivalDateIndia") ?? "") || null,
+              nextDestination: String(formData.get("nextDestination") ?? "") || null,
             }
           : null,
     };

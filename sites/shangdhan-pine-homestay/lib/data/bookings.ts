@@ -21,6 +21,8 @@ export type CreateBookingInput = {
     passportNumber: string | null;
     visaNumber: string | null;
     idProofStoragePath: string | null;
+    arrivalDateIndia: string | null;
+    nextDestination: string | null;
   } | null;
 };
 
@@ -78,6 +80,8 @@ export async function createBooking(supabase: SupabaseClient, input: CreateBooki
       passport_number: input.compliance.passportNumber,
       visa_number: input.compliance.visaNumber,
       id_proof_storage_path: input.compliance.idProofStoragePath,
+      arrival_date_india: input.compliance.arrivalDateIndia,
+      next_destination: input.compliance.nextDestination,
       submitted_frro: false,
     });
     if (error) throw error;
