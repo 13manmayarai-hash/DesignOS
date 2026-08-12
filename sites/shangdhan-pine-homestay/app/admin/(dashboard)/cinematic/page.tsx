@@ -1,0 +1,614 @@
+import Image from "next/image";
+import { createClient } from "@/lib/supabase/server";
+import { getCinematicHero, getAllSightCards } from "@/lib/data/cinematic";
+import { publicImageUrl } from "@/lib/storage";
+import {
+  uploadSkyImageAction,
+  removeSkyImageAction,
+  uploadSkyVideoAction,
+  removeSkyVideoAction,
+  uploadGlowImageAction,
+  removeGlowImageAction,
+  uploadMidgroundImageAction,
+  removeMidgroundImageAction,
+  uploadSplitframeLeftAction,
+  removeSplitframeLeftAction,
+  uploadSplitframeRightAction,
+  removeSplitframeRightAction,
+  uploadMainImageAction,
+  removeMainImageAction,
+  uploadMainVideoAction,
+  removeMainVideoAction,
+  uploadCloseupImageAction,
+  removeCloseupImageAction,
+  updateHeaderAction,
+  updateHeroCopyAction,
+  updatePanel1Action,
+  updatePanel2Action,
+  createSightCardAction,
+  updateSightCardAction,
+  deleteSightCardAction,
+  moveSightCardAction,
+  uploadSightCardPinAction,
+} from "./actions";
+
+const inputClass =
+  "mt-1.5 w-full max-w-md border border-border-default bg-warm-white px-3 py-2 text-sm text-text-primary outline-none focus:border-gold-ink";
+const labelClass = "block text-xs font-medium uppercase tracking-[0.1em] text-text-secondary";
+const saveButtonClass =
+  "bg-charcoal px-6 py-2.5 text-xs font-medium uppercase tracking-[0.14em] text-warm-white hover:bg-charcoal/90";
+
+function NumberBadge({ n }: { n: number }) {
+  return (
+    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-charcoal text-[10px] font-medium text-warm-white">
+      {n}
+    </span>
+  );
+}
+
+function MediaField({
+  n,
+  label,
+  hint,
+  currentPath,
+  uploadAction,
+  removeAction,
+  accept,
+  isVideo = false,
+}: {
+  n: number;
+  label: string;
+  hint?: string;
+  currentPath: string | null;
+  uploadAction: (formData: FormData) => Promise<void>;
+  removeAction: () => Promise<void>;
+  accept: string;
+  isVideo?: boolean;
+}) {
+  const url = currentPath ? publicImageUrl("cinematic-media", currentPath) : null;
+
+  return (
+    <div className="border border-border-default bg-warm-white p-5">
+      <div className="flex items-center gap-2">
+        <NumberBadge n={n} />
+        <p className="text-sm font-medium text-text-primary">{label}</p>
+      </div>
+      {hint ? <p className="mt-1 text-xs text-text-secondary">{hint}</p> : null}
+
+      {url ? (
+        <div className="mt-3 flex items-center gap-4">
+          {isVideo ? (
+            <video
+              src={url}
+              className="h-24 w-40 border border-border-default object-cover"
+              muted
+              playsInline
+            />
+          ) : (
+            <Image
+              src={url}
+              alt=""
+              width={160}
+              height={96}
+              className="h-24 w-40 border border-border-default object-cover"
+            />
+          )}
+          <form action={removeAction}>
+            <button type="submit" className="text-xs font-medium text-red-700 hover:underline">
+              Remove
+            </button>
+          </form>
+        </div>
+      ) : (
+        <p className="mt-3 text-xs text-text-secondary">Not uploaded yet.</p>
+      )}
+
+      <form action={uploadAction} className="mt-3 flex flex-wrap items-end gap-3">
+        <input
+          type="file"
+          name="file"
+          accept={accept}
+          required
+          className="text-sm text-text-secondary"
+        />
+        <button type="submit" className={saveButtonClass}>
+          {url ? "Replace" : "Upload"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+export default async function AdminCinematicPage() {
+  const supabase = await createClient();
+  const [hero, sightCards] = await Promise.all([
+    getCinematicHero(supabase),
+    getAllSightCards(supabase),
+  ]);
+
+  return (
+    <div className="space-y-10">
+      <div>
+        <h1 className="font-display text-3xl text-text-primary">Cinematic hero</h1>
+        <p className="mt-2 max-w-2xl text-sm text-text-secondary">
+          Every layer of the scroll-driven homepage hero, numbered to match the wireframe. Text
+          and images/video saved here feed the public homepage once it&apos;s built against this
+          content -- nothing here goes live on its own yet.
+        </p>
+      </div>
+
+      <section className="space-y-4">
+        <h2 className="font-display text-xl text-text-primary">Header</h2>
+        <div className="border border-border-default bg-warm-white p-5">
+          <div className="flex items-center gap-2">
+            <NumberBadge n={13} />
+            <p className="text-sm font-medium text-text-primary">Header logo label</p>
+          </div>
+          <form action={updateHeaderAction} className="mt-3">
+            <label htmlFor="headerLogoLabel" className={labelClass}>
+              Text shown top-left of the hero
+            </label>
+            <input
+              id="headerLogoLabel"
+              name="headerLogoLabel"
+              defaultValue={hero.header_logo_label ?? ""}
+              placeholder="Shangdhan Pine Homestay"
+              className={inputClass}
+            />
+            <button type="submit" className={`${saveButtonClass} mt-3`}>
+              Save
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-display text-xl text-text-primary">Background layers</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <MediaField
+            n={1}
+            label="Sky / farthest background -- image"
+            hint="Full-bleed backdrop behind everything else."
+            currentPath={hero.sky_image_path}
+            uploadAction={uploadSkyImageAction}
+            removeAction={removeSkyImageAction}
+            accept="image/*"
+          />
+          <MediaField
+            n={1}
+            label="Sky / farthest background -- video (optional)"
+            hint="If set, this plays instead of the sky image."
+            currentPath={hero.sky_video_path}
+            uploadAction={uploadSkyVideoAction}
+            removeAction={removeSkyVideoAction}
+            accept="video/mp4"
+            isVideo
+          />
+          <MediaField
+            n={2}
+            label="Atmospheric glow layer"
+            hint="Soft decorative layer blended over the sky."
+            currentPath={hero.glow_image_path}
+            uploadAction={uploadGlowImageAction}
+            removeAction={removeGlowImageAction}
+            accept="image/*"
+          />
+          <MediaField
+            n={3}
+            label="Mid-ground scene layer"
+            hint="e.g. garden, valley, or tree line behind the main subject."
+            currentPath={hero.midground_image_path}
+            uploadAction={uploadMidgroundImageAction}
+            removeAction={removeMidgroundImageAction}
+            accept="image/*"
+          />
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-display text-xl text-text-primary">Headline &amp; intro</h2>
+        <div className="border border-border-default bg-warm-white p-5">
+          <div className="flex items-center gap-2">
+            <NumberBadge n={4} />
+            <p className="text-sm font-medium text-text-primary">
+              Hero headline + intro paragraph + highlight tags
+            </p>
+          </div>
+          <form action={updateHeroCopyAction} className="mt-3 space-y-4">
+            <div>
+              <label htmlFor="heroHeadline" className={labelClass}>
+                Headline (short -- this renders very large)
+              </label>
+              <input
+                id="heroHeadline"
+                name="heroHeadline"
+                defaultValue={hero.hero_headline ?? ""}
+                placeholder="KAFFER"
+                className={inputClass}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <NumberBadge n={5} />
+              <p className="text-xs font-medium uppercase tracking-[0.1em] text-text-secondary">
+                Intro paragraph + highlight tags
+              </p>
+            </div>
+            <div>
+              <label htmlFor="introParagraph" className={labelClass}>
+                Intro paragraph
+              </label>
+              <textarea
+                id="introParagraph"
+                name="introParagraph"
+                defaultValue={hero.intro_paragraph ?? ""}
+                rows={3}
+                className={`${inputClass} max-w-xl`}
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <label htmlFor="heroTag1" className={labelClass}>
+                  Tag 1
+                </label>
+                <input
+                  id="heroTag1"
+                  name="heroTag1"
+                  defaultValue={hero.hero_tag_1 ?? ""}
+                  placeholder="Pine forest views"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label htmlFor="heroTag2" className={labelClass}>
+                  Tag 2
+                </label>
+                <input
+                  id="heroTag2"
+                  name="heroTag2"
+                  defaultValue={hero.hero_tag_2 ?? ""}
+                  placeholder="Kalimpong homestay"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label htmlFor="heroTag3" className={labelClass}>
+                  Tag 3
+                </label>
+                <input
+                  id="heroTag3"
+                  name="heroTag3"
+                  defaultValue={hero.hero_tag_3 ?? ""}
+                  placeholder="Sunrise over Kanchenjunga"
+                  className={inputClass}
+                />
+              </div>
+            </div>
+            <button type="submit" className={saveButtonClass}>
+              Save
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-display text-xl text-text-primary">Split-frame &amp; foreground</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <MediaField
+            n={6}
+            label="Split-frame -- left half"
+            currentPath={hero.splitframe_left_path}
+            uploadAction={uploadSplitframeLeftAction}
+            removeAction={removeSplitframeLeftAction}
+            accept="image/*"
+          />
+          <MediaField
+            n={7}
+            label="Split-frame -- right half"
+            currentPath={hero.splitframe_right_path}
+            uploadAction={uploadSplitframeRightAction}
+            removeAction={removeSplitframeRightAction}
+            accept="image/*"
+          />
+          <MediaField
+            n={8}
+            label="Main foreground hero -- image"
+            hint="The centerpiece subject, e.g. the homestay building."
+            currentPath={hero.main_image_path}
+            uploadAction={uploadMainImageAction}
+            removeAction={removeMainImageAction}
+            accept="image/*"
+          />
+          <MediaField
+            n={8}
+            label="Main foreground hero -- video (optional)"
+            hint="If set, this plays instead of the main image."
+            currentPath={hero.main_video_path}
+            uploadAction={uploadMainVideoAction}
+            removeAction={removeMainVideoAction}
+            accept="video/mp4"
+            isVideo
+          />
+          <MediaField
+            n={9}
+            label="Close-up reveal image"
+            hint="Second scene revealed later in the scroll, e.g. a room interior."
+            currentPath={hero.closeup_image_path}
+            uploadAction={uploadCloseupImageAction}
+            removeAction={removeCloseupImageAction}
+            accept="image/*"
+          />
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <NumberBadge n={10} />
+          <h2 className="font-display text-xl text-text-primary">
+            Sight cards (designed for up to 5)
+          </h2>
+        </div>
+        <p className="text-sm text-text-secondary">
+          The slider of nearby highlights. Each card has an icon, a short kicker, a title, and a
+          one-line description.
+        </p>
+
+        <div className="border border-border-default bg-warm-white p-5">
+          <p className="text-xs font-medium uppercase tracking-[0.1em] text-text-secondary">
+            Add a card
+          </p>
+          <form action={createSightCardAction} className="mt-3 grid gap-3 sm:grid-cols-3">
+            <input name="kicker" placeholder="Kicker (e.g. Viewpoint)" className={inputClass} />
+            <input name="title" placeholder="Title" className={inputClass} />
+            <input name="description" placeholder="Description" className={inputClass} />
+            <button type="submit" className={`${saveButtonClass} sm:col-span-3 sm:w-fit`}>
+              Add card
+            </button>
+          </form>
+        </div>
+
+        {sightCards.length === 0 ? (
+          <p className="text-sm text-text-secondary">No sight cards yet -- add the first above.</p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {sightCards.map((card, i) => {
+              const pinUrl = card.pin_icon_path
+                ? publicImageUrl("cinematic-media", card.pin_icon_path)
+                : null;
+              return (
+                <div key={card.id} className="border border-border-default bg-warm-white p-5">
+                  <div className="flex items-center gap-3">
+                    {pinUrl ? (
+                      <Image
+                        src={pinUrl}
+                        alt=""
+                        width={40}
+                        height={40}
+                        className="h-10 w-10 shrink-0 border border-border-default object-contain"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-dashed border-sand-dark text-[10px] text-text-secondary">
+                        icon
+                      </div>
+                    )}
+                    <form
+                      action={uploadSightCardPinAction.bind(null, card.id)}
+                      className="flex items-center gap-2"
+                    >
+                      <input type="file" name="pin" accept="image/*" required className="text-xs" />
+                      <button
+                        type="submit"
+                        className="text-xs font-medium text-gold-ink hover:text-text-primary"
+                      >
+                        {pinUrl ? "Replace icon" : "Upload icon"}
+                      </button>
+                    </form>
+                  </div>
+
+                  <form
+                    action={updateSightCardAction.bind(null, card.id)}
+                    className="mt-4 space-y-2"
+                  >
+                    <input
+                      name="kicker"
+                      defaultValue={card.kicker ?? ""}
+                      placeholder="Kicker"
+                      className={inputClass}
+                    />
+                    <input
+                      name="title"
+                      defaultValue={card.title ?? ""}
+                      placeholder="Title"
+                      className={inputClass}
+                    />
+                    <input
+                      name="description"
+                      defaultValue={card.description ?? ""}
+                      placeholder="Description"
+                      className={inputClass}
+                    />
+                    <label className="flex items-center gap-2 text-xs text-text-secondary">
+                      <input
+                        type="checkbox"
+                        name="published"
+                        defaultChecked={card.published}
+                        className="h-4 w-4"
+                      />
+                      Published
+                    </label>
+                    <button type="submit" className="w-full border border-charcoal px-3 py-2 text-xs font-medium uppercase tracking-[0.1em] text-charcoal hover:bg-charcoal hover:text-warm-white">
+                      Save
+                    </button>
+                  </form>
+
+                  <div className="mt-3 flex items-center justify-between text-xs text-text-secondary">
+                    <div className="flex gap-3">
+                      <form action={moveSightCardAction.bind(null, card.id, "up")}>
+                        <button type="submit" disabled={i === 0} className="disabled:opacity-30">
+                          &uarr; Move up
+                        </button>
+                      </form>
+                      <form action={moveSightCardAction.bind(null, card.id, "down")}>
+                        <button
+                          type="submit"
+                          disabled={i === sightCards.length - 1}
+                          className="disabled:opacity-30"
+                        >
+                          Move down &darr;
+                        </button>
+                      </form>
+                    </div>
+                    <form action={deleteSightCardAction.bind(null, card.id)}>
+                      <button type="submit" className="font-medium text-red-700 hover:underline">
+                        Delete
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <NumberBadge n={11} />
+          <h2 className="font-display text-xl text-text-primary">Story panel 1</h2>
+        </div>
+        <div className="border border-border-default bg-warm-white p-5">
+          <form action={updatePanel1Action} className="space-y-4">
+            <div>
+              <label htmlFor="panel1Heading" className={labelClass}>
+                Heading
+              </label>
+              <input
+                id="panel1Heading"
+                name="panel1Heading"
+                defaultValue={hero.panel1_heading ?? ""}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label htmlFor="panel1Paragraph" className={labelClass}>
+                Paragraph
+              </label>
+              <textarea
+                id="panel1Paragraph"
+                name="panel1Paragraph"
+                defaultValue={hero.panel1_paragraph ?? ""}
+                rows={3}
+                className={`${inputClass} max-w-xl`}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label htmlFor="panel1Fact1Value" className={labelClass}>
+                    Fact 1 value
+                  </label>
+                  <input
+                    id="panel1Fact1Value"
+                    name="panel1Fact1Value"
+                    defaultValue={hero.panel1_fact1_value ?? ""}
+                    placeholder="2019"
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="panel1Fact1Label" className={labelClass}>
+                    Fact 1 label
+                  </label>
+                  <input
+                    id="panel1Fact1Label"
+                    name="panel1Fact1Label"
+                    defaultValue={hero.panel1_fact1_label ?? ""}
+                    placeholder="Homestay opened"
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label htmlFor="panel1Fact2Value" className={labelClass}>
+                    Fact 2 value
+                  </label>
+                  <input
+                    id="panel1Fact2Value"
+                    name="panel1Fact2Value"
+                    defaultValue={hero.panel1_fact2_value ?? ""}
+                    placeholder="6,200 ft"
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="panel1Fact2Label" className={labelClass}>
+                    Fact 2 label
+                  </label>
+                  <input
+                    id="panel1Fact2Label"
+                    name="panel1Fact2Label"
+                    defaultValue={hero.panel1_fact2_label ?? ""}
+                    placeholder="Elevation"
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            </div>
+            <button type="submit" className={saveButtonClass}>
+              Save
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <NumberBadge n={12} />
+          <h2 className="font-display text-xl text-text-primary">Story panel 2</h2>
+        </div>
+        <div className="border border-border-default bg-warm-white p-5">
+          <form action={updatePanel2Action} className="space-y-4">
+            <div>
+              <label htmlFor="panel2Heading" className={labelClass}>
+                Heading
+              </label>
+              <input
+                id="panel2Heading"
+                name="panel2Heading"
+                defaultValue={hero.panel2_heading ?? ""}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label htmlFor="panel2Paragraph" className={labelClass}>
+                Paragraph
+              </label>
+              <textarea
+                id="panel2Paragraph"
+                name="panel2Paragraph"
+                defaultValue={hero.panel2_paragraph ?? ""}
+                rows={3}
+                className={`${inputClass} max-w-xl`}
+              />
+            </div>
+            <div>
+              <label htmlFor="panel2CtaLabel" className={labelClass}>
+                Button label
+              </label>
+              <input
+                id="panel2CtaLabel"
+                name="panel2CtaLabel"
+                defaultValue={hero.panel2_cta_label ?? ""}
+                placeholder="Open the garden notes"
+                className={inputClass}
+              />
+            </div>
+            <button type="submit" className={saveButtonClass}>
+              Save
+            </button>
+          </form>
+        </div>
+      </section>
+    </div>
+  );
+}

@@ -34,6 +34,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link href="/admin/settings" className="hover:text-text-primary">
               Settings
             </Link>
+            <Link href="/admin/cinematic" className="hover:text-text-primary">
+              Cinematic
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">

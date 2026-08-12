@@ -127,6 +127,61 @@ alter table booking_status_events add constraint booking_status_events_status_ch
     'AWAITING_UPI_RECONCILIATION', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED'
   ));
 
+-- Single-row content for the cinematic scroll hero (numbers 1-9 and 11-13
+-- in the /admin/cinematic wireframe): one storage path or text field per
+-- visual layer, so the owner can swap any element without a code change.
+-- Layers 1 and 8 allow either an image or a video -- the frontend build
+-- prefers the video when both are set. Same singleton-row trick as
+-- settings below.
+create table if not exists cinematic_hero (
+  id boolean primary key default true,
+  header_logo_label text,
+  sky_image_path text,
+  sky_video_path text,
+  glow_image_path text,
+  midground_image_path text,
+  hero_headline text,
+  intro_paragraph text,
+  hero_tag_1 text,
+  hero_tag_2 text,
+  hero_tag_3 text,
+  splitframe_left_path text,
+  splitframe_right_path text,
+  main_image_path text,
+  main_video_path text,
+  closeup_image_path text,
+  panel1_heading text,
+  panel1_paragraph text,
+  panel1_fact1_value text,
+  panel1_fact1_label text,
+  panel1_fact2_value text,
+  panel1_fact2_label text,
+  panel2_heading text,
+  panel2_paragraph text,
+  panel2_cta_label text,
+  updated_at timestamptz not null default now(),
+  constraint cinematic_hero_singleton check (id)
+);
+
+insert into cinematic_hero (id) values (true) on conflict (id) do nothing;
+
+-- Number 10 in the wireframe: up to 5 repeatable "sight" cards (nearby
+-- highlights) in the slider. Kept as its own table, unlike the single-row
+-- shape above, since it's a reorderable list rather than fixed fields.
+create table if not exists cinematic_sight_cards (
+  id uuid primary key default gen_random_uuid(),
+  kicker text,
+  title text,
+  description text,
+  pin_icon_path text,
+  sort_order integer not null default 0,
+  published boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists cinematic_sight_cards_sort_order_idx
+  on cinematic_sight_cards(sort_order);
+
 -- Single-row settings the owner edits from /admin/settings instead of a
 -- code change: GST registration status and the uploaded UPI payment QR
 -- code image. The boolean primary key + check(id) trick caps this table
@@ -178,6 +233,11 @@ create trigger settings_set_updated_at
   before update on settings
   for each row execute function set_updated_at();
 
+drop trigger if exists cinematic_hero_set_updated_at on cinematic_hero;
+create trigger cinematic_hero_set_updated_at
+  before update on cinematic_hero
+  for each row execute function set_updated_at();
+
 -- Lets guests (anon role) and the /book Server Action check whether a room
 -- is already booked for a date range, without granting any SELECT access
 -- to the bookings table itself -- that stays admin-only so one guest can't
@@ -223,6 +283,8 @@ alter table booking_items enable row level security;
 alter table booking_activities enable row level security;
 alter table booking_compliance enable row level security;
 alter table booking_status_events enable row level security;
+alter table cinematic_hero enable row level security;
+alter table cinematic_sight_cards enable row level security;
 alter table settings enable row level security;
 
 -- RLS policies only filter rows within what a role is already granted at
@@ -235,6 +297,9 @@ grant insert on bookings, booking_items, booking_activities, booking_compliance,
 grant select, update, delete on bookings, booking_items, booking_activities, booking_compliance, booking_status_events to authenticated;
 grant select on settings to anon, authenticated;
 grant update on settings to authenticated;
+grant select on cinematic_hero, cinematic_sight_cards to anon, authenticated;
+grant update on cinematic_hero to authenticated;
+grant insert, update, delete on cinematic_sight_cards to authenticated;
 
 drop policy if exists "public can read published rooms" on rooms;
 create policy "public can read published rooms" on rooms
@@ -331,6 +396,26 @@ create policy "admin can update settings" on settings
   for update using (auth.role() = 'authenticated')
   with check (auth.role() = 'authenticated');
 
+-- Cinematic hero content (see /admin/cinematic): public read since it
+-- drives the public homepage, admin-only write.
+drop policy if exists "public can read cinematic hero" on cinematic_hero;
+create policy "public can read cinematic hero" on cinematic_hero
+  for select using (true);
+
+drop policy if exists "admin can update cinematic hero" on cinematic_hero;
+create policy "admin can update cinematic hero" on cinematic_hero
+  for update using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+drop policy if exists "public can read published sight cards" on cinematic_sight_cards;
+create policy "public can read published sight cards" on cinematic_sight_cards
+  for select using (published = true);
+
+drop policy if exists "admin full access to sight cards" on cinematic_sight_cards;
+create policy "admin full access to sight cards" on cinematic_sight_cards
+  for all using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
 -- ============================================================================
 -- Storage buckets
 --
@@ -396,3 +481,19 @@ drop policy if exists "admin can manage payment qr" on storage.objects;
 create policy "admin can manage payment qr" on storage.objects
   for all using (bucket_id = 'payment-qr' and auth.role() = 'authenticated')
   with check (bucket_id = 'payment-qr' and auth.role() = 'authenticated');
+
+-- Cinematic hero scene layers and sight-card icons, uploaded from
+-- /admin/cinematic -- images and video both land here, public read since
+-- they render on the homepage.
+insert into storage.buckets (id, name, public)
+values ('cinematic-media', 'cinematic-media', true)
+on conflict (id) do nothing;
+
+drop policy if exists "public can read cinematic media" on storage.objects;
+create policy "public can read cinematic media" on storage.objects
+  for select using (bucket_id = 'cinematic-media');
+
+drop policy if exists "admin can manage cinematic media" on storage.objects;
+create policy "admin can manage cinematic media" on storage.objects
+  for all using (bucket_id = 'cinematic-media' and auth.role() = 'authenticated')
+  with check (bucket_id = 'cinematic-media' and auth.role() = 'authenticated');
