@@ -106,6 +106,21 @@ create table if not exists booking_compliance (
   created_at timestamptz not null default now()
 );
 
+-- Single-row settings the owner edits from /admin/settings instead of a
+-- code change: GST registration status and the uploaded UPI payment QR
+-- code image. The boolean primary key + check(id) trick caps this table
+-- at exactly one row, which is all a single-property site needs.
+create table if not exists settings (
+  id boolean primary key default true,
+  gst_applicable boolean not null default false,
+  gstin text,
+  payment_qr_storage_path text,
+  updated_at timestamptz not null default now(),
+  constraint settings_singleton check (id)
+);
+
+insert into settings (id) values (true) on conflict (id) do nothing;
+
 create index if not exists room_images_room_id_idx on room_images(room_id);
 create index if not exists rooms_sort_order_idx on rooms(sort_order);
 create index if not exists gallery_images_sort_order_idx on gallery_images(sort_order);
@@ -137,6 +152,37 @@ create trigger rooms_set_updated_at
   before update on rooms
   for each row execute function set_updated_at();
 
+drop trigger if exists settings_set_updated_at on settings;
+create trigger settings_set_updated_at
+  before update on settings
+  for each row execute function set_updated_at();
+
+-- Lets guests (anon role) and the /book Server Action check whether a room
+-- is already booked for a date range, without granting any SELECT access
+-- to the bookings table itself -- that stays admin-only so one guest can't
+-- browse another's booking details. SECURITY DEFINER runs this as the
+-- function owner, bypassing RLS just for this narrow yes/no computation.
+-- A booking blocks the room until it's CANCELLED; AWAITING_UPI_RECONCILIATION
+-- counts as booked so two guests can't both be sent to pay for the same room.
+create or replace function is_room_available(p_room_id uuid, p_check_in date, p_check_out date)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select not exists (
+    select 1
+    from booking_items bi
+    join bookings b on b.id = bi.booking_id
+    where bi.room_id = p_room_id
+      and b.status != 'CANCELLED'
+      and b.check_in < p_check_out
+      and b.check_out > p_check_in
+  );
+$$;
+
+grant execute on function is_room_available(uuid, date, date) to anon, authenticated;
+
 -- ============================================================================
 -- Row Level Security
 --
@@ -155,6 +201,7 @@ alter table bookings enable row level security;
 alter table booking_items enable row level security;
 alter table booking_activities enable row level security;
 alter table booking_compliance enable row level security;
+alter table settings enable row level security;
 
 -- RLS policies only filter rows within what a role is already granted at
 -- the table level -- they don't grant access themselves. Some Supabase
@@ -164,6 +211,8 @@ grant select on rooms, room_images, gallery_images, activities to anon, authenti
 grant insert, update, delete on rooms, room_images, gallery_images, activities to authenticated;
 grant insert on bookings, booking_items, booking_activities, booking_compliance to anon, authenticated;
 grant select, update, delete on bookings, booking_items, booking_activities, booking_compliance to authenticated;
+grant select on settings to anon, authenticated;
+grant update on settings to authenticated;
 
 drop policy if exists "public can read published rooms" on rooms;
 create policy "public can read published rooms" on rooms
@@ -240,6 +289,17 @@ create policy "admin full access to booking compliance" on booking_compliance
   for all using (auth.role() = 'authenticated')
   with check (auth.role() = 'authenticated');
 
+-- Settings is a single row everyone needs to read (GST + the payment QR
+-- code are shown on the public /book page) but only the admin can change.
+drop policy if exists "public can read settings" on settings;
+create policy "public can read settings" on settings
+  for select using (true);
+
+drop policy if exists "admin can update settings" on settings;
+create policy "admin can update settings" on settings
+  for update using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
 -- ============================================================================
 -- Storage buckets
 --
@@ -289,3 +349,19 @@ drop policy if exists "admin can manage guest documents" on storage.objects;
 create policy "admin can manage guest documents" on storage.objects
   for all using (bucket_id = 'guest-documents' and auth.role() = 'authenticated')
   with check (bucket_id = 'guest-documents' and auth.role() = 'authenticated');
+
+-- The owner's UPI payment QR code, uploaded from /admin/settings and shown
+-- to every guest at checkout -- public read like the photo buckets, since
+-- it's meant to be scanned, not private like guest documents.
+insert into storage.buckets (id, name, public)
+values ('payment-qr', 'payment-qr', true)
+on conflict (id) do nothing;
+
+drop policy if exists "public can read payment qr" on storage.objects;
+create policy "public can read payment qr" on storage.objects
+  for select using (bucket_id = 'payment-qr');
+
+drop policy if exists "admin can manage payment qr" on storage.objects;
+create policy "admin can manage payment qr" on storage.objects
+  for all using (bucket_id = 'payment-qr' and auth.role() = 'authenticated')
+  with check (bucket_id = 'payment-qr' and auth.role() = 'authenticated');

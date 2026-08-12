@@ -7,7 +7,9 @@ import type { Room } from "@/lib/data/rooms";
 import type { Activity } from "@/lib/data/activities";
 import { calculateHospitalityGst, GST_STATE_OPTIONS, PROPERTY_GST_STATE_CODE } from "@/lib/gst";
 import { nightsBetween } from "@/lib/dates";
-import { property, upiId, upiPayeeName, isGstCompliant, whatsappLink } from "@/lib/property-config";
+import { property, upiId, upiPayeeName, whatsappLink } from "@/lib/property-config";
+import { createClient } from "@/lib/supabase/client";
+import { isRoomAvailable } from "@/lib/data/availability";
 import { submitBookingAction } from "../actions";
 
 const STEPS = ["Trip & guests", "Compliance", "Payment"] as const;
@@ -16,8 +18,19 @@ const inputClass =
   "mt-1.5 w-full border border-border-default bg-warm-white px-3.5 py-2.5 text-sm text-text-primary outline-none focus:border-gold-ink";
 const labelClass = "block text-xs font-medium uppercase tracking-[0.1em] text-text-secondary";
 
-export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: Activity[] }) {
+export function BookingFlow({
+  rooms,
+  activities,
+  gstApplicable,
+  paymentQrUrl,
+}: {
+  rooms: Room[];
+  activities: Activity[];
+  gstApplicable: boolean;
+  paymentQrUrl: string | null;
+}) {
   const bookableRooms = rooms.filter((r) => r.rent_amount !== null);
+  const supabase = useMemo(() => createClient(), []);
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
@@ -73,14 +86,18 @@ export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: 
   const gst = calculateHospitalityGst({
     accommodationTotal,
     activitiesTotal,
-    isGstCompliant,
+    isGstCompliant: gstApplicable,
     guestStateCode: isForeign ? "" : guestStateCode,
   });
 
-  const canShowQr = Boolean(upiId) && gst.total > 0;
+  // The admin's uploaded QR image (see /admin/settings) takes priority --
+  // that's the primary payment path now. The generated upi://pay deep link
+  // only kicks in as a fallback if a raw UPI ID is ever configured without
+  // an uploaded image.
+  const canShowGeneratedQr = !paymentQrUrl && Boolean(upiId) && gst.total > 0;
 
   useEffect(() => {
-    if (!canShowQr) return;
+    if (!canShowGeneratedQr) return;
     const uri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(
       upiPayeeName
     )}&am=${gst.total.toFixed(2)}&cu=INR&tn=${encodeURIComponent(`Booking - ${property.name}`)}`;
@@ -91,10 +108,56 @@ export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: 
     return () => {
       cancelled = true;
     };
-  }, [canShowQr, gst.total]);
+  }, [canShowGeneratedQr, gst.total]);
+
+  // Which selected rooms are already booked for the chosen dates. Keyed as
+  // a sorted, comma-joined string (not the room objects/quantities directly)
+  // so the effect only re-runs when the actual selection changes, not on
+  // every unrelated re-render -- using object/array identities here would
+  // re-trigger the effect every render and could loop.
+  const [unavailableRoomIds, setUnavailableRoomIds] = useState<Set<string>>(new Set());
+  const selectedRoomIdsKey = bookableRooms
+    .filter((r) => (roomQuantities[r.id] ?? 0) > 0)
+    .map((r) => r.id)
+    .sort()
+    .join(",");
+
+  useEffect(() => {
+    // Nothing to check yet -- leave any stale entries in unavailableRoomIds
+    // alone rather than resetting synchronously here. That's safe: a stale
+    // id can only match a room that's both selected (roomQuantities > 0)
+    // *and* whose id is in this now-empty key, which is a contradiction, so
+    // it can never actually render a warning.
+    const roomIds = selectedRoomIdsKey ? selectedRoomIdsKey.split(",") : [];
+    if (!checkIn || !checkOut || roomIds.length === 0) return;
+    let cancelled = false;
+    Promise.all(
+      roomIds.map((id) =>
+        isRoomAvailable(supabase, id, checkIn, checkOut).then((ok) => [id, ok] as const)
+      )
+    )
+      .then((results) => {
+        if (cancelled) return;
+        setUnavailableRoomIds(new Set(results.filter(([, ok]) => !ok).map(([id]) => id)));
+      })
+      .catch(() => {
+        // Best-effort: a failed check here just means no early warning --
+        // submitBookingAction re-checks authoritatively on submit regardless.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [checkIn, checkOut, selectedRoomIdsKey, supabase]);
+
+  const hasUnavailableSelection = roomSelections.some((r) => unavailableRoomIds.has(r.roomId));
 
   const step1Valid =
-    checkIn && checkOut && roomSelections.length > 0 && guestName.trim() && guestPhone.trim();
+    checkIn &&
+    checkOut &&
+    roomSelections.length > 0 &&
+    guestName.trim() &&
+    guestPhone.trim() &&
+    !hasUnavailableSelection;
   const step2Valid = idProofFile !== null && (!isForeign || (passportNumber.trim() && visaNumber.trim()));
 
   async function handleConfirm() {
@@ -281,6 +344,11 @@ export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: 
                           &#8377;{new Intl.NumberFormat("en-IN").format(room.rent_amount ?? 0)}{" "}
                           {room.rent_unit}
                         </p>
+                        {(roomQuantities[room.id] ?? 0) > 0 && unavailableRoomIds.has(room.id) ? (
+                          <p className="mt-1 text-xs text-red-700">
+                            Not available for these dates -- try different dates or remove it.
+                          </p>
+                        ) : null}
                       </div>
                       <div className="flex items-center gap-3">
                         <button
@@ -502,7 +570,19 @@ export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: 
               </p>
             </div>
 
-            {canShowQr ? (
+            {paymentQrUrl ? (
+              <div className="border border-border-default bg-warm-white/60 p-6 text-center">
+                {/* eslint-disable-next-line @next/next/no-img-element -- Supabase Storage URL, already served resized by the bucket, not worth Next's image pipeline for a small fixed QR */}
+                <img
+                  src={paymentQrUrl}
+                  alt="UPI payment QR code"
+                  className="mx-auto h-56 w-56 object-contain"
+                />
+                <p className="mt-4 text-sm text-text-secondary">
+                  Scan with any UPI app and pay &#8377;{gst.total.toFixed(2)}.
+                </p>
+              </div>
+            ) : canShowGeneratedQr ? (
               <div className="border border-border-default bg-warm-white/60 p-6 text-center">
                 {qrDataUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- data URI, not a Supabase/Vercel-optimizable asset
@@ -519,8 +599,8 @@ export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: 
               </div>
             ) : (
               <div className="border border-dashed border-sand-dark bg-warm-white/60 px-5 py-4 text-sm text-text-secondary">
-                A UPI ID hasn&apos;t been set up for this property yet -- message the host on WhatsApp
-                to arrange payment instead of scanning a code here.
+                A payment QR code hasn&apos;t been set up for this property yet -- message the host
+                on WhatsApp to arrange payment instead of scanning a code here.
               </div>
             )}
 
@@ -582,7 +662,7 @@ export function BookingFlow({ rooms, activities }: { rooms: Room[]; activities: 
                 </div>
               ))}
             </div>
-            {isGstCompliant ? (
+            {gstApplicable ? (
               <div className="space-y-1 border-t border-border-default pt-3 text-sm">
                 {gst.igst > 0 ? (
                   <div className="flex justify-between text-text-secondary">

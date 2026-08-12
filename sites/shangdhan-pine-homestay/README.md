@@ -62,18 +62,24 @@ the same Supabase tables as `/admin`; bookings are recorded in `bookings`
 go through. Guests never log in -- row-level security lets anyone create
 a booking but only the admin account can ever read one back.
 
-Two things need to be set before this is fully live:
+GST registration and the payment QR code are set from `/admin/settings`,
+not a code change: toggle "GST applicable" and enter a GSTIN if the
+property is registered (checkout then applies the 5%/18% CGST+SGST/IGST
+split automatically -- see `lib/gst.ts`), and upload a screenshot of the
+property's UPI QR code so guests can scan it directly at checkout. Until
+a QR code is uploaded, the payment step shows a "message the host on
+WhatsApp instead" notice.
 
-- `lib/property-config.ts`: `upiId` (the payment QR won't render without
-  it -- the payment step shows a "message the host on WhatsApp instead"
-  notice until then) and `isGstCompliant` (leave `false` unless the
-  property has a GSTIN).
-- `whatsappNumber` (see "Before launch" below) -- the final confirmation
-  step needs it to open WhatsApp with the booking summary.
+Submitted bookings -- guest details, room/activity line items, the UPI
+transaction reference, and FRRO/passport compliance for foreign guests --
+are visible and manageable (status workflow, FRRO-submitted toggle) at
+`/admin/bookings`. There's still no admin UI for managing `activities`
+-- that table is only editable via Supabase's Table Editor for now.
 
-There's currently no admin UI for viewing submitted bookings or managing
-`activities` -- they're in the database (viewable via Supabase's Table
-Editor) but not yet surfaced in `/admin`.
+A room already blocks its dates for any other guest the moment a
+booking is submitted (checked via the `is_room_available()` SQL function
+in `supabase/schema.sql`, both live in the booking form and again,
+authoritatively, on submit) -- cancel a booking to free the room back up.
 
 ### Guest confirmation emails
 
@@ -106,10 +112,11 @@ than a straightforward addition to the codebase.
 
 ## Structure
 
-- `lib/property-config.ts` -- facts still marked open in the brief
-  (WhatsApp number, the noon check-in/out flag) plus the placeholder
-  copy shown when no rooms exist in Supabase yet. Change these here,
-  not in components.
+- `lib/property-config.ts` -- facts still marked open in the brief (the
+  noon check-in/out flag) plus the placeholder copy shown when no rooms
+  exist in Supabase yet. Change these here, not in components. GST and
+  the payment QR code live in the `settings` table instead -- see
+  "Booking" above.
 - `lib/sunrise.ts` -- the sunrise-time and seasonal-window logic. Pure
   astronomical calculation, no external API.
 - `app/globals.css` -- design tokens (color, type, motion) sourced from
@@ -128,14 +135,12 @@ than a straightforward addition to the codebase.
 
 See "Open Items" in the build brief. In particular:
 
-- Set a real WhatsApp number in `lib/property-config.ts`
-  (`whatsappNumber`) -- the Book/Check-availability CTAs are inert until
-  this is set.
 - Follow "Backend setup" above, then add real rooms (name, rent, size,
   photos) through `/admin/rooms` -- the placeholder amenity list only
   shows while that table is empty.
 - Confirm the noon check-in/check-out time with the property.
 - Swap the illustrated hero for real clear-season photography once the
   archive is confirmed usable.
-- Set `upiId` and `isGstCompliant` in `lib/property-config.ts` so `/book`
-  can actually take a payment -- see "Booking" above.
+- Set GST applicable + GSTIN and upload the UPI payment QR code from
+  `/admin/settings` so `/book` can actually take a payment -- see
+  "Booking" above.

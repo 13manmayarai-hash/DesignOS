@@ -1,4 +1,4 @@
-export type Bucket = "room-photos" | "gallery-photos";
+export type Bucket = "room-photos" | "gallery-photos" | "payment-qr";
 
 // Buckets are public-read (see supabase/schema.sql), so the URL is a plain
 // string join -- no signed URL or client round-trip needed.

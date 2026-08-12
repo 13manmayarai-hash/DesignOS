@@ -8,9 +8,9 @@ export const property = {
   aka: "Kaffer homestay",
 };
 
-// TODO(open item): real WhatsApp business number. Placeholder until the
-// property confirms one -- do not ship with this value.
-export const whatsappNumber = "";
+// wa.me needs the full international number, digits only, no "+" -- India
+// country code 91 plus the property's 10-digit mobile number.
+export const whatsappNumber = "919775489292";
 
 export function whatsappLink(message: string): string | null {
   if (!whatsappNumber) return null;
@@ -23,10 +23,10 @@ export function whatsappLink(message: string): string | null {
 export const upiId = "";
 export const upiPayeeName = property.name;
 
-// TODO(open item): confirm with the property whether they're GST-registered
-// (have a GSTIN). Most homestays under the threshold are GST-exempt --
-// leave false unless the owner confirms otherwise.
-export const isGstCompliant = false;
+// GST registration status and GSTIN now live in the "settings" table
+// (see supabase/schema.sql) and are editable from /admin/settings --
+// the owner can flip this without a code change. No fallback constant
+// here anymore; lib/data/settings.ts is the source of truth.
 
 // Sender address for booking confirmation emails (see lib/email.ts). Resend's
 // shared sandbox address works immediately with no domain setup -- swap in

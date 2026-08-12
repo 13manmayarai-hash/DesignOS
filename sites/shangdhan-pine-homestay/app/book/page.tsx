@@ -5,6 +5,8 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getPublishedRooms } from "@/lib/data/rooms";
 import { getPublishedActivities } from "@/lib/data/activities";
 import { getGalleryImages } from "@/lib/data/gallery";
+import { getSettings } from "@/lib/data/settings";
+import { publicImageUrl } from "@/lib/storage";
 import { BookingFlow } from "./components/BookingFlow";
 
 export const metadata: Metadata = {
@@ -14,13 +16,18 @@ export const metadata: Metadata = {
 export default async function BookPage() {
   const configured = isSupabaseConfigured();
   const supabase = configured ? await createClient() : null;
-  const [rooms, activities, galleryImages] = supabase
+  const [rooms, activities, galleryImages, settings] = supabase
     ? await Promise.all([
         getPublishedRooms(supabase),
         getPublishedActivities(supabase),
         getGalleryImages(supabase),
+        getSettings(supabase),
       ])
-    : [[], [], []];
+    : [[], [], [], null];
+
+  const paymentQrUrl = settings?.payment_qr_storage_path
+    ? publicImageUrl("payment-qr", settings.payment_qr_storage_path)
+    : null;
 
   return (
     <>
@@ -33,7 +40,12 @@ export default async function BookPage() {
           </h1>
         </div>
         {configured ? (
-          <BookingFlow rooms={rooms} activities={activities} />
+          <BookingFlow
+            rooms={rooms}
+            activities={activities}
+            gstApplicable={settings?.gst_applicable ?? false}
+            paymentQrUrl={paymentQrUrl}
+          />
         ) : (
           <div className="mx-auto max-w-2xl px-6 py-16 text-center sm:px-10">
             <p className="text-sm text-text-secondary">

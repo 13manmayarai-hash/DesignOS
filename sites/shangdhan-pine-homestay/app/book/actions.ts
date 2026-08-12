@@ -2,6 +2,7 @@
 
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { createBooking, type CreateBookingInput } from "@/lib/data/bookings";
+import { isRoomAvailable } from "@/lib/data/availability";
 import { randomStoragePath } from "@/lib/storage";
 import { nightsBetween } from "@/lib/dates";
 import { sendBookingConfirmationEmail } from "@/lib/email";
@@ -25,6 +26,22 @@ export async function submitBookingAction(formData: FormData): Promise<SubmitBoo
     const activitySelections = JSON.parse(String(formData.get("activitySelections") ?? "[]"));
     const nationality = String(formData.get("guestNationality") ?? "Indian");
     const isForeign = nationality !== "Indian";
+    const checkIn = String(formData.get("checkIn") ?? "");
+    const checkOut = String(formData.get("checkOut") ?? "");
+
+    // Authoritative re-check: the client already warns about unavailable
+    // rooms, but only this server-side check -- run right before the
+    // booking is written -- actually closes the race between two guests
+    // both viewing the same open dates at once.
+    for (const room of roomSelections as { roomId: string; roomName: string }[]) {
+      const available = await isRoomAvailable(supabase, room.roomId, checkIn, checkOut);
+      if (!available) {
+        return {
+          ok: false,
+          error: `${room.roomName} is no longer available for those dates -- please pick different dates or remove it.`,
+        };
+      }
+    }
 
     let idProofStoragePath: string | null = null;
     const idProofFile = formData.get("idProofFile");
@@ -43,8 +60,8 @@ export async function submitBookingAction(formData: FormData): Promise<SubmitBoo
       guestEmail: String(formData.get("guestEmail") ?? "") || null,
       guestNationality: nationality,
       guestStateCode: String(formData.get("guestStateCode") ?? "") || null,
-      checkIn: String(formData.get("checkIn") ?? ""),
-      checkOut: String(formData.get("checkOut") ?? ""),
+      checkIn,
+      checkOut,
       roomSelections,
       activitySelections,
       accommodationTotal: Number(formData.get("accommodationTotal") ?? 0),
