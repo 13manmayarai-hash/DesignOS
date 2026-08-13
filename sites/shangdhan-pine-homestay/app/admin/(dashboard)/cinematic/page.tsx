@@ -1,7 +1,13 @@
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
-import { getCinematicHero, getAllSightCards } from "@/lib/data/cinematic";
+import {
+  getCinematicHero,
+  getAllSightCards,
+  getHeadlineSegments,
+  HEADLINE_LAYER_OPTIONS,
+} from "@/lib/data/cinematic";
 import { publicImageUrl } from "@/lib/storage";
+import { FONT_CHOICES, TEXT_CASE_OPTIONS } from "@/lib/fonts";
 import { SubmitButton } from "../_components/SubmitButton";
 import {
   uploadSkyImageAction,
@@ -31,6 +37,11 @@ import {
   deleteSightCardAction,
   moveSightCardAction,
   uploadSightCardPinAction,
+  updateHeadlineThemeColorAction,
+  setHeadlineSegmentCountAction,
+  updateHeadlineSegmentAction,
+  deleteHeadlineSegmentAction,
+  moveHeadlineSegmentAction,
 } from "./actions";
 
 const inputClass =
@@ -251,9 +262,10 @@ function CinematicWireframe() {
 
 export default async function AdminCinematicPage() {
   const supabase = await createClient();
-  const [hero, sightCards] = await Promise.all([
+  const [hero, sightCards, headlineSegments] = await Promise.all([
     getCinematicHero(supabase),
     getAllSightCards(supabase),
+    getHeadlineSegments(supabase),
   ]);
 
   return (
@@ -420,6 +432,246 @@ export default async function AdminCinematicPage() {
             </SubmitButton>
           </form>
         </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-display text-xl text-text-primary">Headline word-by-word styling</h2>
+        <p className="text-sm text-text-secondary">
+          Optional: style the headline one word (or one letter, if you type the headline with a
+          space between each letter) at a time -- its own font, size, case, color, and a position
+          nudge with a front/behind layer. Leave this empty and the plain headline above is used
+          as-is.
+        </p>
+
+        <div className="ledger-panel">
+          <p className={labelClass}>Theme color</p>
+          <p className="mt-1 text-xs text-text-secondary">
+            The default color every word uses unless it sets its own color below.
+          </p>
+          <form action={updateHeadlineThemeColorAction} className="mt-3 flex items-center gap-3">
+            <input
+              type="color"
+              name="headlineThemeColor"
+              defaultValue={hero.headline_theme_color ?? "#fdf1e1"}
+              className="h-10 w-16 cursor-pointer border border-border-default bg-warm-white"
+            />
+            <SubmitButton pendingLabel="Saving..." className={saveButtonClass}>
+              Save theme color
+            </SubmitButton>
+          </form>
+        </div>
+
+        <div className="ledger-panel">
+          <p className={labelClass}>Number of words</p>
+          <form action={setHeadlineSegmentCountAction} className="mt-3 flex items-end gap-3">
+            <div>
+              <label htmlFor="wordCount" className="sr-only">
+                Number of words
+              </label>
+              <input
+                id="wordCount"
+                type="number"
+                name="wordCount"
+                min={0}
+                max={50}
+                defaultValue={headlineSegments.length}
+                className={`${inputClass} max-w-[8rem]`}
+              />
+            </div>
+            <SubmitButton pendingLabel="Updating..." className={saveButtonClass}>
+              Update word count
+            </SubmitButton>
+          </form>
+          <p className="mt-2 text-xs text-text-secondary">
+            Raising this adds blank words at the end; lowering it removes the last ones. Currently{" "}
+            {headlineSegments.length} word{headlineSegments.length === 1 ? "" : "s"}.
+          </p>
+        </div>
+
+        {headlineSegments.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {headlineSegments.map((segment, i) => (
+              <div key={segment.id} className="ledger-panel">
+                <form
+                  action={updateHeadlineSegmentAction.bind(null, segment.id)}
+                  className="space-y-3"
+                >
+                  <div>
+                    <label htmlFor={`text-${segment.id}`} className={labelClass}>
+                      Word {i + 1}
+                    </label>
+                    <input
+                      id={`text-${segment.id}`}
+                      name="text"
+                      defaultValue={segment.text}
+                      placeholder="e.g. KAFFER"
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor={`font-${segment.id}`} className={labelClass}>
+                      Font
+                    </label>
+                    <select
+                      id={`font-${segment.id}`}
+                      name="fontChoice"
+                      defaultValue={segment.font_choice ?? ""}
+                      className={inputClass}
+                    >
+                      <option value="">Use site font</option>
+                      {FONT_CHOICES.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor={`case-${segment.id}`} className={labelClass}>
+                        Letter case
+                      </label>
+                      <select
+                        id={`case-${segment.id}`}
+                        name="textCase"
+                        defaultValue={segment.text_case}
+                        className={inputClass}
+                      >
+                        {TEXT_CASE_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor={`size-${segment.id}`} className={labelClass}>
+                        Size (&times; headline size)
+                      </label>
+                      <input
+                        id={`size-${segment.id}`}
+                        type="number"
+                        name="sizeMultiplier"
+                        min={0.2}
+                        max={3}
+                        step={0.05}
+                        defaultValue={segment.size_multiplier}
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.1em] text-text-secondary">
+                      <input
+                        type="checkbox"
+                        name="useThemeColor"
+                        defaultChecked={!segment.color}
+                        className="h-4 w-4"
+                      />
+                      Use theme color
+                    </label>
+                    <input
+                      type="color"
+                      name="color"
+                      defaultValue={segment.color ?? "#fdf1e1"}
+                      className="mt-2 h-10 w-16 cursor-pointer border border-border-default bg-warm-white"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor={`offset-x-${segment.id}`} className={labelClass}>
+                        Left / right
+                      </label>
+                      <input
+                        id={`offset-x-${segment.id}`}
+                        type="number"
+                        name="offsetX"
+                        min={-10}
+                        max={10}
+                        step={0.1}
+                        defaultValue={segment.offset_x}
+                        placeholder="-left / +right"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor={`offset-y-${segment.id}`} className={labelClass}>
+                        Up / down
+                      </label>
+                      <input
+                        id={`offset-y-${segment.id}`}
+                        type="number"
+                        name="offsetY"
+                        min={-10}
+                        max={10}
+                        step={0.1}
+                        defaultValue={segment.offset_y}
+                        placeholder="-up / +down"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-text-secondary">
+                    Both are in font-size units, not pixels -- 1 is roughly one letter-width, and
+                    they scale down with the headline on smaller screens automatically.
+                  </p>
+
+                  <div>
+                    <label htmlFor={`layer-${segment.id}`} className={labelClass}>
+                      Layer
+                    </label>
+                    <select
+                      id={`layer-${segment.id}`}
+                      name="layer"
+                      defaultValue={segment.layer}
+                      className={inputClass}
+                    >
+                      {HEADLINE_LAYER_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <SubmitButton pendingLabel="Saving..." className={`${saveButtonClass} w-full`}>
+                    Save word {i + 1}
+                  </SubmitButton>
+                </form>
+
+                <div className="mt-3 flex items-center justify-between border-t border-border-default pt-3 text-xs text-text-secondary">
+                  <div className="flex gap-3">
+                    <form action={moveHeadlineSegmentAction.bind(null, segment.id, "up")}>
+                      <SubmitButton disabled={i === 0} className="disabled:opacity-30">
+                        &uarr; Move up
+                      </SubmitButton>
+                    </form>
+                    <form action={moveHeadlineSegmentAction.bind(null, segment.id, "down")}>
+                      <SubmitButton
+                        disabled={i === headlineSegments.length - 1}
+                        className="disabled:opacity-30"
+                      >
+                        Move down &darr;
+                      </SubmitButton>
+                    </form>
+                  </div>
+                  <form action={deleteHeadlineSegmentAction.bind(null, segment.id)}>
+                    <SubmitButton
+                      pendingLabel="Deleting..."
+                      className="font-medium text-stamp-red hover:underline"
+                    >
+                      Delete
+                    </SubmitButton>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className="space-y-4">

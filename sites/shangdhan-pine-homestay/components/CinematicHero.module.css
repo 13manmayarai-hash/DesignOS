@@ -326,6 +326,44 @@
   will-change: transform, opacity;
 }
 
+/* Word-by-word headline (see /admin/cinematic "Headline word-by-word
+   styling"). Each word is its OWN absolutely-positioned element, a direct
+   sibling of the scene layers (.back-bazaar, .splitframe-img, etc.) inside
+   .world -- deliberately NOT nested in a shared wrapper. A shared wrapper
+   would need the same transform: translate3d(...) scale(...) as
+   .hero-title above to ride the scroll animation, but `transform` (any
+   non-none value) always creates a new stacking context regardless of
+   z-index -- so words nested inside it could never actually appear behind
+   or in front of true siblings like the mountain image, only relative to
+   each other. Giving each word its own transform (composed per-word below)
+   means each word's z-index instead compares directly against those
+   siblings, which is what makes the layer choice per word actually work.
+   JS in CinematicHero.tsx computes a rough left-to-right auto-position per
+   word from its text length, folded into the same transform as the
+   admin's manual offset, so an unstyled headline still reads as one line
+   by default. */
+/* No box of its own (see the JSX comment) -- purely a semantic <h1>
+   wrapper so the words below still form one accessible heading. */
+.hero-title-wrapper {
+  display: contents;
+}
+
+.hero-title-word {
+  position: absolute;
+  left: 50%;
+  top: clamp(122px, 19vh, 205px);
+  margin: 0;
+  color: var(--hero-paper);
+  font-family: var(--font-display);
+  font-size: 14rem;
+  font-weight: 500;
+  line-height: 0.78;
+  white-space: nowrap;
+  text-shadow: none;
+  opacity: var(--title-opacity);
+  will-change: transform, opacity;
+}
+
 .bridge-img {
   z-index: 4;
   left: 50%;
@@ -521,7 +559,8 @@
 }
 
 @media (max-width: 1500px) {
-  .hero-title {
+  .hero-title,
+  .hero-title-word {
     font-size: 11rem;
   }
   .story-panel h2 {
@@ -530,7 +569,8 @@
 }
 
 @media (max-width: 1100px) {
-  .hero-title {
+  .hero-title,
+  .hero-title-word {
     top: 15vh;
     font-size: 7.5rem;
   }
@@ -560,7 +600,8 @@
   .stage {
     min-height: 640px;
   }
-  .hero-title {
+  .hero-title,
+  .hero-title-word {
     top: 16vh;
     font-size: 4.5rem;
   }
@@ -640,6 +681,7 @@
   .scene-img,
   .back-stack,
   .hero-title,
+  .hero-title-word,
   .intro-copy,
   .story-panel,
   .sights-track,

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import styles from "./CinematicHero.module.css";
+import { FONT_CHOICES, googleFontsStylesheetUrl, type TextCase } from "@/lib/fonts";
 
 export type CinematicHeroContent = {
   skyImageUrl: string | null;
@@ -33,6 +34,28 @@ export type CinematicSightCard = {
   pinIconUrl: string | null;
 };
 
+export type CinematicHeadlineSegment = {
+  id: string;
+  text: string;
+  fontChoice: string | null;
+  textCase: TextCase;
+  color: string | null;
+  sizeMultiplier: number;
+  offsetX: number;
+  offsetY: number;
+  layer: "behind" | "normal" | "front";
+};
+
+// Behind sits under the mid-ground/glow layers (z 1-2), normal matches the
+// plain headline's old z=3, front clears the split-frame/bridge/frame-two
+// imagery (z up to 6) but stays under the intro copy and story panels (z
+// 9-10) so a word can never cover interactive UI.
+const LAYER_Z_INDEX: Record<CinematicHeadlineSegment["layer"], number> = {
+  behind: 1,
+  normal: 3,
+  front: 7,
+};
+
 // ---- easing helpers, ported verbatim from the scroll-choreography spec ----
 
 function clamp(v: number, min = 0, max = 1) {
@@ -54,9 +77,13 @@ function segmentInOut(s: number, a: number, b: number, c: number, d: number) {
 export function CinematicHero({
   hero,
   sightCards,
+  headlineSegments = [],
+  headlineThemeColor,
 }: {
   hero: CinematicHeroContent;
   sightCards: CinematicSightCard[];
+  headlineSegments?: CinematicHeadlineSegment[];
+  headlineThemeColor?: string | null;
 }) {
   const sectionRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -66,6 +93,48 @@ export function CinematicHero({
   const cardRefs = useRef<HTMLElement[]>([]);
 
   const originalCount = sightCards.length;
+
+  // Any per-word font choices that differ from the site's own display font
+  // need their own stylesheet -- next/font can't load a runtime-chosen
+  // font, so this mirrors the same <link> approach app/(public)/layout.tsx
+  // uses for the site-wide font.
+  const segmentFontFamilies = useMemo(() => {
+    const chosenIds = new Set(
+      headlineSegments.map((s) => s.fontChoice).filter((id): id is string => Boolean(id))
+    );
+    return FONT_CHOICES.filter((f) => chosenIds.has(f.id));
+  }, [headlineSegments]);
+
+  // Each word is independently positioned (see the comment on
+  // .hero-title-word in the CSS module for why it can't be a shared flex
+  // row), so there's no browser layout to fall back on for the reading
+  // order. This estimates each word's width from its character count to
+  // lay them out left-to-right by default -- rough (no real font metrics),
+  // but it's just a starting point the admin's own offsetX/offsetY nudge
+  // on top of.
+  const wordsWithAutoLayout = useMemo(() => {
+    const GAP_EM = 0.28;
+    const widths = headlineSegments.map(
+      (s) => Math.max(s.text.length, 1) * 0.58 * s.sizeMultiplier
+    );
+    const totalEm =
+      widths.reduce((sum, w) => sum + w, 0) + GAP_EM * Math.max(headlineSegments.length - 1, 0);
+
+    const { rows } = headlineSegments.reduce<{
+      cursorEm: number;
+      rows: { segment: CinematicHeadlineSegment; autoXem: number }[];
+    }>(
+      (acc, segment, i) => {
+        const centerEm = acc.cursorEm + widths[i] / 2;
+        return {
+          cursorEm: acc.cursorEm + widths[i] + GAP_EM,
+          rows: [...acc.rows, { segment, autoXem: centerEm }],
+        };
+      },
+      { cursorEm: -totalEm / 2, rows: [] }
+    );
+    return rows;
+  }, [headlineSegments]);
 
   // Three identical sets back to back, so the slider can loop seamlessly --
   // start in the middle set and jump a whole set backward/forward whenever
@@ -404,7 +473,50 @@ export function CinematicHero({
             </div>
           ) : null}
 
-          <h1 className={styles["hero-title"]}>{hero.heroHeadline || "KAFFER"}</h1>
+          {segmentFontFamilies.length > 0 ? (
+            <link
+              rel="stylesheet"
+              href={googleFontsStylesheetUrl(segmentFontFamilies.map((f) => f.cssFamily))}
+            />
+          ) : null}
+
+          {headlineSegments.length > 0 ? (
+            // A plain, unpositioned wrapper -- purely for one semantic <h1>
+            // per hero. It has no position/transform of its own, so each
+            // word span's position:absolute (see .hero-title-word) resolves
+            // against .world, same as if they were direct siblings of it.
+            <h1 className={styles["hero-title-wrapper"]}>
+              {wordsWithAutoLayout.map(({ segment, autoXem }) => {
+                const font = segment.fontChoice
+                  ? FONT_CHOICES.find((f) => f.id === segment.fontChoice)
+                  : null;
+                return (
+                  <span
+                    key={segment.id}
+                    className={styles["hero-title-word"]}
+                    style={{
+                      fontFamily: font ? `'${font.fontFamily}', var(--font-display)` : undefined,
+                      textTransform: segment.textCase === "none" ? undefined : segment.textCase,
+                      color: segment.color || headlineThemeColor || undefined,
+                      // offsetX/offsetY are in em (relative to this word's
+                      // own font-size, same unit the auto-layout above
+                      // uses) rather than px -- the headline's font-size
+                      // swings from 14rem down to 4.5rem across the
+                      // responsive breakpoints in the CSS module, and a
+                      // fixed px nudge would go from subtle to wildly
+                      // oversized between those. em keeps it proportional.
+                      transform: `translate3d(calc(-50% + ${autoXem + segment.offsetX}em), calc(var(--title-y) + ${segment.offsetY}em), 0) scale(calc(var(--title-scale) * ${segment.sizeMultiplier}))`,
+                      zIndex: LAYER_Z_INDEX[segment.layer],
+                    }}
+                  >
+                    {segment.text}
+                  </span>
+                );
+              })}
+            </h1>
+          ) : (
+            <h1 className={styles["hero-title"]}>{hero.heroHeadline || "KAFFER"}</h1>
+          )}
 
           {hero.splitframeLeftUrl ? (
             // eslint-disable-next-line @next/next/no-img-element

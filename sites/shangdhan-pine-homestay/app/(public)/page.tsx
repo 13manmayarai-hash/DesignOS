@@ -12,19 +12,20 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { StickyBookingBar } from "@/components/StickyBookingBar";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getGalleryImages, type GalleryImage } from "@/lib/data/gallery";
-import { getCinematicHero, getPublishedSightCards } from "@/lib/data/cinematic";
+import { getCinematicHero, getPublishedSightCards, getHeadlineSegments } from "@/lib/data/cinematic";
 import { publicImageUrl } from "@/lib/storage";
 
 export default async function Home() {
   const configured = isSupabaseConfigured();
   const supabase = configured ? await createClient() : null;
-  const [galleryImages, cinematicHero, sightCards] = supabase
+  const [galleryImages, cinematicHero, sightCards, headlineSegments] = supabase
     ? await Promise.all([
         getGalleryImages(supabase),
         getCinematicHero(supabase),
         getPublishedSightCards(supabase),
+        getHeadlineSegments(supabase),
       ])
-    : [[] as GalleryImage[], null, []];
+    : [[] as GalleryImage[], null, [], []];
 
   const mediaUrl = (path: string | null) =>
     path ? publicImageUrl("cinematic-media", path) : null;
@@ -67,10 +68,27 @@ export default async function Home() {
     pinIconUrl: mediaUrl(card.pin_icon_path),
   }));
 
+  const headlineSegmentContent = headlineSegments.map((segment) => ({
+    id: segment.id,
+    text: segment.text,
+    fontChoice: segment.font_choice,
+    textCase: segment.text_case,
+    color: segment.color,
+    sizeMultiplier: segment.size_multiplier,
+    offsetX: segment.offset_x,
+    offsetY: segment.offset_y,
+    layer: segment.layer,
+  }));
+
   return (
     <>
       <SiteHeader showGallery={galleryImages.length > 0} />
-      <CinematicHero hero={heroContent} sightCards={sightCardContent} />
+      <CinematicHero
+        hero={heroContent}
+        sightCards={sightCardContent}
+        headlineSegments={headlineSegmentContent}
+        headlineThemeColor={cinematicHero?.headline_theme_color ?? null}
+      />
       <main className="flex-1 pb-16 sm:pb-0">
         <SunriseSection />
         <RoomsSection />

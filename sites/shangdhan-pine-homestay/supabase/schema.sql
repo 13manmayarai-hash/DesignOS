@@ -191,6 +191,44 @@ create table if not exists cinematic_sight_cards (
 create index if not exists cinematic_sight_cards_sort_order_idx
   on cinematic_sight_cards(sort_order);
 
+-- Word-by-word styling for the hero headline (see hero_headline above) --
+-- each row is one word (or letter, if the owner types the headline with
+-- spaces between letters) with its own font, size, case, color, and a
+-- position nudge + layer, so a word can sit in front of or behind the
+-- hero's other scene layers. Falls back to plain hero_headline text on
+-- the public site when this table is empty for the property.
+create table if not exists cinematic_headline_segments (
+  id uuid primary key default gen_random_uuid(),
+  sort_order integer not null default 0,
+  text text not null default '',
+  font_choice text,
+  text_case text not null default 'none',
+  color text,
+  size_multiplier numeric not null default 1,
+  -- em, not px -- relative to the word's own (responsive) font-size so a
+  -- nudge stays proportional from the 14rem desktop headline down to the
+  -- 4.5rem mobile one. See CinematicHero.tsx.
+  offset_x numeric not null default 0,
+  offset_y numeric not null default 0,
+  layer text not null default 'normal',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists cinematic_headline_segments_sort_order_idx
+  on cinematic_headline_segments(sort_order);
+
+alter table cinematic_headline_segments drop constraint if exists cinematic_headline_segments_text_case_check;
+alter table cinematic_headline_segments add constraint cinematic_headline_segments_text_case_check
+  check (text_case in ('none', 'uppercase', 'lowercase', 'capitalize'));
+
+alter table cinematic_headline_segments drop constraint if exists cinematic_headline_segments_layer_check;
+alter table cinematic_headline_segments add constraint cinematic_headline_segments_layer_check
+  check (layer in ('behind', 'normal', 'front'));
+
+-- One theme color for the whole headline -- the default every segment
+-- above uses unless it sets its own color override.
+alter table cinematic_hero add column if not exists headline_theme_color text;
+
 -- Owner-side date blocking (maintenance, personal use, anything not tied
 -- to a guest booking) -- adapted from HomestayOS's per-day BlockedDate
 -- model, but stored as a range per row rather than one row per day, since
@@ -368,6 +406,7 @@ alter table booking_compliance enable row level security;
 alter table booking_status_events enable row level security;
 alter table cinematic_hero enable row level security;
 alter table cinematic_sight_cards enable row level security;
+alter table cinematic_headline_segments enable row level security;
 alter table room_blocked_ranges enable row level security;
 alter table settings enable row level security;
 alter table invoices enable row level security;
@@ -382,9 +421,9 @@ grant insert on bookings, booking_items, booking_activities, booking_compliance,
 grant select, update, delete on bookings, booking_items, booking_activities, booking_compliance, booking_status_events to authenticated;
 grant select on settings to anon, authenticated;
 grant update on settings to authenticated;
-grant select on cinematic_hero, cinematic_sight_cards to anon, authenticated;
+grant select on cinematic_hero, cinematic_sight_cards, cinematic_headline_segments to anon, authenticated;
 grant update on cinematic_hero to authenticated;
-grant insert, update, delete on cinematic_sight_cards to authenticated;
+grant insert, update, delete on cinematic_sight_cards, cinematic_headline_segments to authenticated;
 -- No anon grant here -- guests never query room_blocked_ranges directly,
 -- only is_room_available() does, as SECURITY DEFINER bypassing RLS.
 grant select, insert, update, delete on room_blocked_ranges to authenticated;
@@ -504,6 +543,18 @@ create policy "public can read published sight cards" on cinematic_sight_cards
 
 drop policy if exists "admin full access to sight cards" on cinematic_sight_cards;
 create policy "admin full access to sight cards" on cinematic_sight_cards
+  for all using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+-- Headline segments drive the public homepage hero, same as sight cards --
+-- public read, admin-only write. No "published" flag here (unlike sight
+-- cards) -- every segment that exists is meant to be shown.
+drop policy if exists "public can read headline segments" on cinematic_headline_segments;
+create policy "public can read headline segments" on cinematic_headline_segments
+  for select using (true);
+
+drop policy if exists "admin full access to headline segments" on cinematic_headline_segments;
+create policy "admin full access to headline segments" on cinematic_headline_segments
   for all using (auth.role() = 'authenticated')
   with check (auth.role() = 'authenticated');
 

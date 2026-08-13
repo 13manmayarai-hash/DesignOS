@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { TextCase } from "@/lib/fonts";
 
 // Field names match the numbered wireframe in /admin/cinematic 1:1 --
 // see supabase/schema.sql for the column-by-column mapping.
@@ -27,6 +28,7 @@ export type CinematicHero = {
   panel2_heading: string | null;
   panel2_paragraph: string | null;
   panel2_cta_label: string | null;
+  headline_theme_color: string | null;
 };
 
 const EMPTY_CINEMATIC_HERO: CinematicHero = {
@@ -54,6 +56,7 @@ const EMPTY_CINEMATIC_HERO: CinematicHero = {
   panel2_heading: null,
   panel2_paragraph: null,
   panel2_cta_label: null,
+  headline_theme_color: null,
 };
 
 // cinematic_hero is a singleton row (id is always `true`, see schema.sql)
@@ -201,4 +204,137 @@ export async function moveSightCard(
       .update({ sort_order: current.sort_order })
       .eq("id", swap.id),
   ]);
+}
+
+export type HeadlineLayer = "behind" | "normal" | "front";
+
+export const HEADLINE_LAYER_OPTIONS: { value: HeadlineLayer; label: string }[] = [
+  { value: "behind", label: "Behind the scene (mountain/imagery can cover it)" },
+  { value: "normal", label: "Normal (same as before)" },
+  { value: "front", label: "In front of everything" },
+];
+
+export type HeadlineSegment = {
+  id: string;
+  sort_order: number;
+  text: string;
+  font_choice: string | null;
+  text_case: TextCase;
+  color: string | null;
+  size_multiplier: number;
+  offset_x: number;
+  offset_y: number;
+  layer: HeadlineLayer;
+  created_at: string;
+};
+
+export type HeadlineSegmentInput = {
+  text: string;
+  fontChoice: string | null;
+  textCase: TextCase;
+  color: string | null;
+  sizeMultiplier: number;
+  offsetX: number;
+  offsetY: number;
+  layer: HeadlineLayer;
+};
+
+export async function getHeadlineSegments(supabase: SupabaseClient): Promise<HeadlineSegment[]> {
+  const { data, error } = await supabase
+    .from("cinematic_headline_segments")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return data as HeadlineSegment[];
+}
+
+export async function updateHeadlineSegment(
+  supabase: SupabaseClient,
+  id: string,
+  input: HeadlineSegmentInput
+) {
+  const { error } = await supabase
+    .from("cinematic_headline_segments")
+    .update({
+      text: input.text,
+      font_choice: input.fontChoice,
+      text_case: input.textCase,
+      color: input.color,
+      size_multiplier: input.sizeMultiplier,
+      offset_x: input.offsetX,
+      offset_y: input.offsetY,
+      layer: input.layer,
+    })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteHeadlineSegment(supabase: SupabaseClient, id: string) {
+  const { error } = await supabase.from("cinematic_headline_segments").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function moveHeadlineSegment(
+  supabase: SupabaseClient,
+  id: string,
+  direction: "up" | "down"
+) {
+  const { data: segments, error } = await supabase
+    .from("cinematic_headline_segments")
+    .select("id, sort_order")
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+
+  const index = segments.findIndex((s: { id: string }) => s.id === id);
+  const swapIndex = direction === "up" ? index - 1 : index + 1;
+  if (index === -1 || swapIndex < 0 || swapIndex >= segments.length) return;
+
+  const current = segments[index];
+  const swap = segments[swapIndex];
+
+  await Promise.all([
+    supabase
+      .from("cinematic_headline_segments")
+      .update({ sort_order: swap.sort_order })
+      .eq("id", current.id),
+    supabase
+      .from("cinematic_headline_segments")
+      .update({ sort_order: current.sort_order })
+      .eq("id", swap.id),
+  ]);
+}
+
+// The admin sets a target word count and this grows or shrinks the segment
+// list to match: growing appends blank segments (sort_order continuing the
+// existing sequence), shrinking drops the segments with the highest
+// sort_order first -- i.e. the last ones in reading order.
+export async function setHeadlineSegmentCount(supabase: SupabaseClient, count: number) {
+  const { data: segments, error } = await supabase
+    .from("cinematic_headline_segments")
+    .select("id, sort_order")
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+
+  const target = Math.max(0, Math.min(50, Math.floor(count)));
+
+  if (segments.length < target) {
+    const nextSortOrder = segments.length
+      ? Math.max(...segments.map((s: { sort_order: number }) => s.sort_order)) + 1
+      : 0;
+    const toInsert = Array.from({ length: target - segments.length }, (_, i) => ({
+      text: "",
+      sort_order: nextSortOrder + i,
+    }));
+    const { error: insertError } = await supabase
+      .from("cinematic_headline_segments")
+      .insert(toInsert);
+    if (insertError) throw insertError;
+  } else if (segments.length > target) {
+    const toRemove = segments.slice(target).map((s: { id: string }) => s.id);
+    const { error: deleteError } = await supabase
+      .from("cinematic_headline_segments")
+      .delete()
+      .in("id", toRemove);
+    if (deleteError) throw deleteError;
+  }
 }
