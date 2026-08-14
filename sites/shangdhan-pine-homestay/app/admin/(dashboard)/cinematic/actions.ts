@@ -15,7 +15,6 @@ import {
   type HeadlineLayer,
   type HeadlineSegmentSave,
 } from "@/lib/data/cinematic";
-import { randomStoragePath } from "@/lib/storage";
 import { TEXT_CASE_OPTIONS, type TextCase } from "@/lib/fonts";
 
 function revalidateCinematic() {
@@ -35,30 +34,21 @@ function actionErrorMessage(err: unknown): string {
 }
 
 // Shared by every single-file scene layer (elements 1, 2, 3, 6, 7, 8, 9 in
-// the wireframe) -- upload the new file, point the column at it, then clean
-// up whatever was there before. Bound to a specific column below so each
-// upload <form> just needs a plain file input named "file".
-async function uploadCinematicMediaField(
+// the wireframe). The file itself is NOT sent here -- Vercel Functions cap
+// a request body at 4.5MB, well under a typical photo, so the client
+// component uploads the file straight to Supabase Storage from the
+// browser (see _components/uploadCinematicMedia.ts) and only passes the
+// resulting storage path here to point the column at it and clean up
+// whatever was there before. Bound to a specific column below.
+async function attachCinematicMediaField(
   column: keyof CinematicHero,
-  _prevState: MediaActionState,
-  formData: FormData
+  path: string
 ): Promise<MediaActionState> {
   try {
     await requireUser();
     const supabase = await createClient();
 
-    const file = formData.get("file");
-    if (!(file instanceof File) || file.size === 0) {
-      return { error: "Choose a file to upload" };
-    }
-
     const current = await getCinematicHero(supabase);
-    const path = randomStoragePath(file.name);
-    const { error: uploadError } = await supabase.storage
-      .from("cinematic-media")
-      .upload(path, file, { contentType: file.type });
-    if (uploadError) throw uploadError;
-
     await updateCinematicHero(supabase, { [column]: path });
 
     const previousPath = current[column];
@@ -96,14 +86,14 @@ async function removeCinematicMediaField(
   }
 }
 
-export const uploadSkyImageAction = uploadCinematicMediaField.bind(null, "sky_image_path");
+export const attachSkyImageAction = attachCinematicMediaField.bind(null, "sky_image_path");
 export const removeSkyImageAction = removeCinematicMediaField.bind(null, "sky_image_path");
-export const uploadSkyVideoAction = uploadCinematicMediaField.bind(null, "sky_video_path");
+export const attachSkyVideoAction = attachCinematicMediaField.bind(null, "sky_video_path");
 export const removeSkyVideoAction = removeCinematicMediaField.bind(null, "sky_video_path");
 
-export const uploadGlowImageAction = uploadCinematicMediaField.bind(null, "glow_image_path");
+export const attachGlowImageAction = attachCinematicMediaField.bind(null, "glow_image_path");
 export const removeGlowImageAction = removeCinematicMediaField.bind(null, "glow_image_path");
-export const uploadMidgroundImageAction = uploadCinematicMediaField.bind(
+export const attachMidgroundImageAction = attachCinematicMediaField.bind(
   null,
   "midground_image_path"
 );
@@ -112,7 +102,7 @@ export const removeMidgroundImageAction = removeCinematicMediaField.bind(
   "midground_image_path"
 );
 
-export const uploadSplitframeLeftAction = uploadCinematicMediaField.bind(
+export const attachSplitframeLeftAction = attachCinematicMediaField.bind(
   null,
   "splitframe_left_path"
 );
@@ -120,7 +110,7 @@ export const removeSplitframeLeftAction = removeCinematicMediaField.bind(
   null,
   "splitframe_left_path"
 );
-export const uploadSplitframeRightAction = uploadCinematicMediaField.bind(
+export const attachSplitframeRightAction = attachCinematicMediaField.bind(
   null,
   "splitframe_right_path"
 );
@@ -129,12 +119,12 @@ export const removeSplitframeRightAction = removeCinematicMediaField.bind(
   "splitframe_right_path"
 );
 
-export const uploadMainImageAction = uploadCinematicMediaField.bind(null, "main_image_path");
+export const attachMainImageAction = attachCinematicMediaField.bind(null, "main_image_path");
 export const removeMainImageAction = removeCinematicMediaField.bind(null, "main_image_path");
-export const uploadMainVideoAction = uploadCinematicMediaField.bind(null, "main_video_path");
+export const attachMainVideoAction = attachCinematicMediaField.bind(null, "main_video_path");
 export const removeMainVideoAction = removeCinematicMediaField.bind(null, "main_video_path");
 
-export const uploadCloseupImageAction = uploadCinematicMediaField.bind(
+export const attachCloseupImageAction = attachCinematicMediaField.bind(
   null,
   "closeup_image_path"
 );
@@ -234,26 +224,13 @@ export async function moveSightCardAction(id: string, direction: "up" | "down") 
   revalidateCinematic();
 }
 
-export async function uploadSightCardPinAction(
-  id: string,
-  _prevState: MediaActionState,
-  formData: FormData
-): Promise<MediaActionState> {
+// Same reasoning as attachCinematicMediaField above -- the icon file is
+// uploaded from the browser straight to Supabase Storage, this just points
+// the sight card at the resulting path.
+export async function attachSightCardPinAction(id: string, path: string): Promise<MediaActionState> {
   try {
     await requireUser();
     const supabase = await createClient();
-
-    const file = formData.get("pin");
-    if (!(file instanceof File) || file.size === 0) {
-      return { error: "Choose an icon to upload" };
-    }
-
-    const path = randomStoragePath(file.name);
-    const { error: uploadError } = await supabase.storage
-      .from("cinematic-media")
-      .upload(path, file, { contentType: file.type });
-    if (uploadError) throw uploadError;
-
     await setSightCardPinIcon(supabase, id, path);
     revalidateCinematic();
     return { error: null };

@@ -1,14 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import Image from "next/image";
 import { publicImageUrl } from "@/lib/storage";
 import { SubmitButton } from "../../_components/SubmitButton";
 import { NumberBadge, CheckIcon, XIcon } from "./Icons";
+import { uploadCinematicMedia } from "./uploadCinematicMedia";
 import type { MediaActionState } from "../actions";
 
 const saveButtonClass =
-  "bg-charcoal px-6 py-2.5 text-xs font-medium uppercase tracking-[0.14em] text-warm-white hover:bg-charcoal/90";
+  "bg-charcoal px-6 py-2.5 text-xs font-medium uppercase tracking-[0.14em] text-warm-white hover:bg-charcoal/90 disabled:cursor-not-allowed disabled:opacity-70";
 // Tailwind's file: variant styles the native "Choose File" pseudo-button
 // (::file-selector-button) -- without it, that button is unstyled and the
 // whole input looks like bare unstyled text with no visible control.
@@ -17,16 +18,18 @@ const fileInputClass =
 
 const initialState: MediaActionState = { error: null };
 
-// useActionState (not a plain <form action={fn}>) so a failed upload --
-// bad storage bucket/RLS, an oversized file, a network blip -- shows an
-// inline message here instead of an uncaught Server Action error crashing
-// the whole /admin/cinematic page.
+// Removal still goes through useActionState/<form> since it never sends a
+// file body. The upload leg below deliberately doesn't: it uploads to
+// Supabase Storage straight from the browser (see uploadCinematicMedia),
+// then calls attachAction with just the resulting path, so a failure --
+// bad storage bucket/RLS, an oversized file, a network blip -- shows
+// inline instead of crashing the page.
 export function MediaField({
   n,
   label,
   hint,
   currentPath,
-  uploadAction,
+  attachAction,
   removeAction,
   accept,
   isVideo = false,
@@ -35,14 +38,36 @@ export function MediaField({
   label: string;
   hint?: string;
   currentPath: string | null;
-  uploadAction: (prevState: MediaActionState, formData: FormData) => Promise<MediaActionState>;
+  attachAction: (path: string) => Promise<MediaActionState>;
   removeAction: (prevState: MediaActionState, formData: FormData) => Promise<MediaActionState>;
   accept: string;
   isVideo?: boolean;
 }) {
   const url = currentPath ? publicImageUrl("cinematic-media", currentPath) : null;
-  const [uploadState, uploadFormAction] = useActionState(uploadAction, initialState);
   const [removeState, removeFormAction] = useActionState(removeAction, initialState);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [inputKey, setInputKey] = useState(0);
+  const [isUploading, startUpload] = useTransition();
+
+  function handleUpload() {
+    if (!selectedFile) return;
+    setUploadError(null);
+    startUpload(async () => {
+      try {
+        const path = await uploadCinematicMedia(selectedFile);
+        const result = await attachAction(path);
+        if (result.error) {
+          setUploadError(result.error);
+          return;
+        }
+        setSelectedFile(null);
+        setInputKey((k) => k + 1);
+      } catch (err) {
+        setUploadError(err instanceof Error ? err.message : "Upload failed");
+      }
+    });
+  }
 
   return (
     <div className="ledger-panel">
@@ -98,15 +123,19 @@ export function MediaField({
         <p className="mt-2 text-xs font-medium text-stamp-red">{removeState.error}</p>
       ) : null}
 
-      <form action={uploadFormAction} className="mt-3 flex flex-wrap items-end gap-3">
-        <input type="file" name="file" accept={accept} required className={fileInputClass} />
-        <SubmitButton pendingLabel="Uploading..." className={saveButtonClass}>
-          {url ? "Replace" : "Upload"}
-        </SubmitButton>
-      </form>
-      {uploadState.error ? (
-        <p className="mt-2 text-xs font-medium text-stamp-red">{uploadState.error}</p>
-      ) : null}
+      <div className="mt-3 flex flex-wrap items-end gap-3">
+        <input
+          key={inputKey}
+          type="file"
+          accept={accept}
+          onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+          className={fileInputClass}
+        />
+        <button type="button" onClick={handleUpload} disabled={!selectedFile || isUploading} className={saveButtonClass}>
+          {isUploading ? "Uploading..." : url ? "Replace" : "Upload"}
+        </button>
+      </div>
+      {uploadError ? <p className="mt-2 text-xs font-medium text-stamp-red">{uploadError}</p> : null}
     </div>
   );
 }

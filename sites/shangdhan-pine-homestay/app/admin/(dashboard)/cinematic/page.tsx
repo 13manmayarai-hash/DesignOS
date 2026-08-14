@@ -10,23 +10,23 @@ import { MediaField } from "./_components/MediaField";
 import { PinUploadForm } from "./_components/PinUploadForm";
 import { NumberBadge, CheckIcon } from "./_components/Icons";
 import {
-  uploadSkyImageAction,
+  attachSkyImageAction,
   removeSkyImageAction,
-  uploadSkyVideoAction,
+  attachSkyVideoAction,
   removeSkyVideoAction,
-  uploadGlowImageAction,
+  attachGlowImageAction,
   removeGlowImageAction,
-  uploadMidgroundImageAction,
+  attachMidgroundImageAction,
   removeMidgroundImageAction,
-  uploadSplitframeLeftAction,
+  attachSplitframeLeftAction,
   removeSplitframeLeftAction,
-  uploadSplitframeRightAction,
+  attachSplitframeRightAction,
   removeSplitframeRightAction,
-  uploadMainImageAction,
+  attachMainImageAction,
   removeMainImageAction,
-  uploadMainVideoAction,
+  attachMainVideoAction,
   removeMainVideoAction,
-  uploadCloseupImageAction,
+  attachCloseupImageAction,
   removeCloseupImageAction,
   updateHeaderAction,
   updateHeroCopyAction,
@@ -36,7 +36,7 @@ import {
   updateSightCardAction,
   deleteSightCardAction,
   moveSightCardAction,
-  uploadSightCardPinAction,
+  attachSightCardPinAction,
   saveHeadlineAction,
 } from "./actions";
 
@@ -212,7 +212,7 @@ export default async function AdminCinematicPage() {
             label="Sky / farthest background -- image"
             hint="Full-bleed backdrop behind everything else."
             currentPath={hero.sky_image_path}
-            uploadAction={uploadSkyImageAction}
+            attachAction={attachSkyImageAction}
             removeAction={removeSkyImageAction}
             accept="image/*"
           />
@@ -221,7 +221,7 @@ export default async function AdminCinematicPage() {
             label="Sky / farthest background -- video (optional)"
             hint="If set, this plays instead of the sky image."
             currentPath={hero.sky_video_path}
-            uploadAction={uploadSkyVideoAction}
+            attachAction={attachSkyVideoAction}
             removeAction={removeSkyVideoAction}
             accept="video/mp4"
             isVideo
@@ -231,7 +231,7 @@ export default async function AdminCinematicPage() {
             label="Atmospheric glow layer"
             hint="Soft decorative layer blended over the sky."
             currentPath={hero.glow_image_path}
-            uploadAction={uploadGlowImageAction}
+            attachAction={attachGlowImageAction}
             removeAction={removeGlowImageAction}
             accept="image/*"
           />
@@ -240,7 +240,7 @@ export default async function AdminCinematicPage() {
             label="Mid-ground scene layer"
             hint="e.g. garden, valley, or tree line behind the main subject."
             currentPath={hero.midground_image_path}
-            uploadAction={uploadMidgroundImageAction}
+            attachAction={attachMidgroundImageAction}
             removeAction={removeMidgroundImageAction}
             accept="image/*"
           />
@@ -356,7 +356,7 @@ export default async function AdminCinematicPage() {
             n={6}
             label="Split-frame -- left half"
             currentPath={hero.splitframe_left_path}
-            uploadAction={uploadSplitframeLeftAction}
+            attachAction={attachSplitframeLeftAction}
             removeAction={removeSplitframeLeftAction}
             accept="image/*"
           />
@@ -364,7 +364,7 @@ export default async function AdminCinematicPage() {
             n={7}
             label="Split-frame -- right half"
             currentPath={hero.splitframe_right_path}
-            uploadAction={uploadSplitframeRightAction}
+            attachAction={attachSplitframeRightAction}
             removeAction={removeSplitframeRightAction}
             accept="image/*"
           />
@@ -373,7 +373,7 @@ export default async function AdminCinematicPage() {
             label="Main foreground hero -- image"
             hint="The centerpiece subject, e.g. the homestay building."
             currentPath={hero.main_image_path}
-            uploadAction={uploadMainImageAction}
+            attachAction={attachMainImageAction}
             removeAction={removeMainImageAction}
             accept="image/*"
           />
@@ -382,7 +382,7 @@ export default async function AdminCinematicPage() {
             label="Main foreground hero -- video (optional)"
             hint="If set, this plays instead of the main image."
             currentPath={hero.main_video_path}
-            uploadAction={uploadMainVideoAction}
+            attachAction={attachMainVideoAction}
             removeAction={removeMainVideoAction}
             accept="video/mp4"
             isVideo
@@ -392,7 +392,7 @@ export default async function AdminCinematicPage() {
             label="Close-up reveal image"
             hint="Second scene revealed later in the scroll, e.g. a room interior."
             currentPath={hero.closeup_image_path}
-            uploadAction={uploadCloseupImageAction}
+            attachAction={attachCloseupImageAction}
             removeAction={removeCloseupImageAction}
             accept="image/*"
           />
@@ -462,7 +462,7 @@ export default async function AdminCinematicPage() {
                       </div>
                     )}
                     <PinUploadForm
-                      action={uploadSightCardPinAction.bind(null, card.id)}
+                      action={attachSightCardPinAction.bind(null, card.id)}
                       hasExisting={Boolean(pinUrl)}
                     />
                   </div>
