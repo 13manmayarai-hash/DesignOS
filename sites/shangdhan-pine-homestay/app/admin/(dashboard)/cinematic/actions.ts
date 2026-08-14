@@ -23,51 +23,77 @@ function revalidateCinematic() {
   revalidatePath("/");
 }
 
+// { error: null } on success -- returned rather than thrown, and read via
+// useActionState in the client form, so a failed upload (bad storage
+// bucket/RLS, oversized file, network blip) shows an inline message and
+// leaves the rest of the page usable instead of crashing the whole route
+// the way an uncaught Server Action error does.
+export type MediaActionState = { error: string | null };
+
+function actionErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : "Something went wrong. Please try again.";
+}
+
 // Shared by every single-file scene layer (elements 1, 2, 3, 6, 7, 8, 9 in
 // the wireframe) -- upload the new file, point the column at it, then clean
 // up whatever was there before. Bound to a specific column below so each
 // upload <form> just needs a plain file input named "file".
 async function uploadCinematicMediaField(
   column: keyof CinematicHero,
+  _prevState: MediaActionState,
   formData: FormData
-) {
-  await requireUser();
-  const supabase = await createClient();
+): Promise<MediaActionState> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
 
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    throw new Error("Choose a file to upload");
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      return { error: "Choose a file to upload" };
+    }
+
+    const current = await getCinematicHero(supabase);
+    const path = randomStoragePath(file.name);
+    const { error: uploadError } = await supabase.storage
+      .from("cinematic-media")
+      .upload(path, file, { contentType: file.type });
+    if (uploadError) throw uploadError;
+
+    await updateCinematicHero(supabase, { [column]: path });
+
+    const previousPath = current[column];
+    if (previousPath) {
+      await supabase.storage.from("cinematic-media").remove([previousPath]);
+    }
+
+    revalidateCinematic();
+    return { error: null };
+  } catch (err) {
+    return { error: actionErrorMessage(err) };
   }
-
-  const current = await getCinematicHero(supabase);
-  const path = randomStoragePath(file.name);
-  const { error: uploadError } = await supabase.storage
-    .from("cinematic-media")
-    .upload(path, file, { contentType: file.type });
-  if (uploadError) throw uploadError;
-
-  await updateCinematicHero(supabase, { [column]: path });
-
-  const previousPath = current[column];
-  if (previousPath) {
-    await supabase.storage.from("cinematic-media").remove([previousPath]);
-  }
-
-  revalidateCinematic();
 }
 
-async function removeCinematicMediaField(column: keyof CinematicHero) {
-  await requireUser();
-  const supabase = await createClient();
+async function removeCinematicMediaField(
+  column: keyof CinematicHero,
+  _prevState: MediaActionState,
+  _formData: FormData
+): Promise<MediaActionState> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
 
-  const current = await getCinematicHero(supabase);
-  const path = current[column];
-  if (path) {
-    await supabase.storage.from("cinematic-media").remove([path]);
+    const current = await getCinematicHero(supabase);
+    const path = current[column];
+    if (path) {
+      await supabase.storage.from("cinematic-media").remove([path]);
+    }
+    await updateCinematicHero(supabase, { [column]: null });
+
+    revalidateCinematic();
+    return { error: null };
+  } catch (err) {
+    return { error: actionErrorMessage(err) };
   }
-  await updateCinematicHero(supabase, { [column]: null });
-
-  revalidateCinematic();
 }
 
 export const uploadSkyImageAction = uploadCinematicMediaField.bind(null, "sky_image_path");
@@ -208,23 +234,32 @@ export async function moveSightCardAction(id: string, direction: "up" | "down") 
   revalidateCinematic();
 }
 
-export async function uploadSightCardPinAction(id: string, formData: FormData) {
-  await requireUser();
-  const supabase = await createClient();
+export async function uploadSightCardPinAction(
+  id: string,
+  _prevState: MediaActionState,
+  formData: FormData
+): Promise<MediaActionState> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
 
-  const file = formData.get("pin");
-  if (!(file instanceof File) || file.size === 0) {
-    throw new Error("Choose an icon to upload");
+    const file = formData.get("pin");
+    if (!(file instanceof File) || file.size === 0) {
+      return { error: "Choose an icon to upload" };
+    }
+
+    const path = randomStoragePath(file.name);
+    const { error: uploadError } = await supabase.storage
+      .from("cinematic-media")
+      .upload(path, file, { contentType: file.type });
+    if (uploadError) throw uploadError;
+
+    await setSightCardPinIcon(supabase, id, path);
+    revalidateCinematic();
+    return { error: null };
+  } catch (err) {
+    return { error: actionErrorMessage(err) };
   }
-
-  const path = randomStoragePath(file.name);
-  const { error: uploadError } = await supabase.storage
-    .from("cinematic-media")
-    .upload(path, file, { contentType: file.type });
-  if (uploadError) throw uploadError;
-
-  await setSightCardPinIcon(supabase, id, path);
-  revalidateCinematic();
 }
 
 // Word-by-word headline styling. The editor (a client component) manages
