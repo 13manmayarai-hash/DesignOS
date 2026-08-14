@@ -16,7 +16,7 @@ import {
 import { computeWordAutoLayout, wordTransform } from "@/lib/headline-layout";
 import { FontPicker } from "../../_components/FontPicker";
 import { ColorPicker } from "../../_components/ColorPicker";
-import { DirectionPad } from "../../_components/DirectionPad";
+import { WordPositionMover } from "./WordPositionMover";
 import type { SaveHeadlineInput } from "../actions";
 
 const labelClass = "block text-xs font-medium uppercase tracking-[0.1em] text-text-secondary";
@@ -116,6 +116,9 @@ export function HeadlineSegmentsEditor({
   const [headlineText, setHeadlineText] = useState(initialSegments.map((s) => s.text).join(" "));
   const [words, setWords] = useState<LocalWord[]>(initialSegments.map(toLocalWord));
   const [themeColor, setThemeColor] = useState<string | null>(initialThemeColor ?? "#fdf1e1");
+  const [selectedWordKey, setSelectedWordKey] = useState<string | null>(
+    initialSegments[0]?.id ?? null
+  );
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const newKeyCounter = useRef(0);
@@ -135,11 +138,13 @@ export function HeadlineSegmentsEditor({
   function handleHeadlineTextChange(text: string) {
     setHeadlineText(text);
     const tokens = text.split(/\s+/).filter(Boolean);
-    setWords((prev) =>
-      tokens.map((token, i) => {
-        const existing = prev[i];
-        return existing ? { ...existing, text: token } : defaultWordSettings(token, nextNewKey());
-      })
+    const newWords = tokens.map((token, i) => {
+      const existing = words[i];
+      return existing ? { ...existing, text: token } : defaultWordSettings(token, nextNewKey());
+    });
+    setWords(newWords);
+    setSelectedWordKey((prev) =>
+      prev && newWords.some((w) => w.key === prev) ? prev : (newWords[0]?.key ?? null)
     );
   }
 
@@ -147,13 +152,36 @@ export function HeadlineSegmentsEditor({
     setWords((prev) => prev.map((w) => (w.key === key ? { ...w, ...patch } : w)));
   }
 
+  function nudgeSelectedWord(dx: number, dy: number) {
+    if (!selectedWordKey) return;
+    setWords((prev) =>
+      prev.map((w) =>
+        w.key === selectedWordKey
+          ? {
+              ...w,
+              offsetX: Number((w.offsetX + dx).toFixed(2)),
+              offsetY: Number((w.offsetY + dy).toFixed(2)),
+            }
+          : w
+      )
+    );
+  }
+
+  function resetSelectedWordPosition() {
+    if (!selectedWordKey) return;
+    updateWord(selectedWordKey, { offsetX: 0, offsetY: 0 });
+  }
+
   function handleSave() {
     setSaveError(null);
+    const selectedIndex = words.findIndex((w) => w.key === selectedWordKey);
     startTransition(async () => {
       try {
         const saved = await saveAction({ themeColor, segments: words.map(toSegmentSave) });
-        setWords(saved.map(toLocalWord));
+        const savedWords = saved.map(toLocalWord);
+        setWords(savedWords);
         setHeadlineText(saved.map((s) => s.text).join(" "));
+        setSelectedWordKey(savedWords[selectedIndex]?.key ?? savedWords[0]?.key ?? null);
       } catch (err) {
         setSaveError(err instanceof Error ? err.message : "Failed to save");
       }
@@ -231,9 +259,24 @@ export function HeadlineSegmentsEditor({
       </div>
 
       {words.length > 0 ? (
+        <WordPositionMover
+          words={words}
+          selectedKey={selectedWordKey}
+          onSelect={setSelectedWordKey}
+          onNudge={nudgeSelectedWord}
+          onReset={resetSelectedWordPosition}
+        />
+      ) : null}
+
+      {words.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {words.map((w, i) => (
-            <div key={w.key} className="ledger-panel space-y-3">
+            <div
+              key={w.key}
+              className={`ledger-panel space-y-3 ${
+                w.key === selectedWordKey ? "ring-1 ring-inset ring-gold-ink" : ""
+              }`}
+            >
               <p className="text-sm font-medium text-text-primary">
                 Word {i + 1}: &ldquo;{w.text}&rdquo;
               </p>
@@ -309,17 +352,6 @@ export function HeadlineSegmentsEditor({
                     value={w.color}
                     onChange={(c) => updateWord(w.key, { color: c })}
                     themeColor={themeColor}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <p className={labelClass}>Position</p>
-                <div className="mt-1.5">
-                  <DirectionPad
-                    x={w.offsetX}
-                    y={w.offsetY}
-                    onChange={(x, y) => updateWord(w.key, { offsetX: x, offsetY: y })}
                   />
                 </div>
               </div>
