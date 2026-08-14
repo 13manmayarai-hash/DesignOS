@@ -84,12 +84,12 @@ export default async function AdminSettingsPage() {
             />
             <p className="mt-1 text-xs text-text-secondary">Only used when GST applicable is Yes.</p>
           </div>
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Saving..."
             className="bg-charcoal px-6 py-2.5 text-xs font-medium uppercase tracking-[0.14em] text-warm-white hover:bg-charcoal/90"
           >
             Save
-          </button>
+          </SubmitButton>
         </form>
         <p className="mt-4 max-w-lg text-xs text-text-secondary">
           When applicable, checkout automatically applies 5% GST on accommodation (18% for nights
@@ -115,9 +115,12 @@ export default async function AdminSettingsPage() {
               className="border border-border-default object-contain"
             />
             <form action={removePaymentQrAction}>
-              <button type="submit" className="text-xs font-medium text-stamp-red hover:underline">
+              <SubmitButton
+                pendingLabel="Removing..."
+                className="text-xs font-medium text-stamp-red hover:underline"
+              >
                 Remove QR code
-              </button>
+              </SubmitButton>
             </form>
           </div>
         ) : (
@@ -135,12 +138,12 @@ export default async function AdminSettingsPage() {
               className="mt-1.5 text-sm text-text-secondary"
             />
           </div>
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Uploading..."
             className="bg-charcoal px-6 py-2.5 text-xs font-medium uppercase tracking-[0.14em] text-warm-white hover:bg-charcoal/90"
           >
             Upload
-          </button>
+          </SubmitButton>
         </form>
       </section>
 

@@ -2,6 +2,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { getGalleryImages } from "@/lib/data/gallery";
 import { publicImageUrl } from "@/lib/storage";
+import { SubmitButton } from "../_components/SubmitButton";
 import {
   deleteGalleryImageAction,
   moveGalleryImageAction,
@@ -51,12 +52,12 @@ export default async function AdminGalleryPage() {
             <label className={labelClass}>Category (optional)</label>
             <input name="category" placeholder="e.g. garden, views" className={inputClass} />
           </div>
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Uploading..."
             className="bg-charcoal px-6 py-2.5 text-xs font-medium uppercase tracking-[0.14em] text-warm-white hover:bg-charcoal/90"
           >
             Upload
-          </button>
+          </SubmitButton>
         </form>
       </section>
 
@@ -89,33 +90,32 @@ export default async function AdminGalleryPage() {
                   defaultValue={image.category ?? ""}
                   className={inputClass}
                 />
-                <button
-                  type="submit"
+                <SubmitButton
+                  pendingLabel="Saving..."
                   className="w-full border border-charcoal px-3 py-2 text-xs font-medium uppercase tracking-[0.1em] text-charcoal hover:bg-charcoal hover:text-warm-white"
                 >
                   Save
-                </button>
+                </SubmitButton>
               </form>
               <div className="mt-2 flex items-center justify-between text-xs text-text-secondary">
                 <form action={moveGalleryImageAction.bind(null, image.id, "up")}>
-                  <button type="submit" disabled={i === 0} className="disabled:opacity-30">
+                  <SubmitButton disabled={i === 0} className="disabled:opacity-30">
                     &uarr; Move up
-                  </button>
+                  </SubmitButton>
                 </form>
                 <form action={moveGalleryImageAction.bind(null, image.id, "down")}>
-                  <button
-                    type="submit"
-                    disabled={i === images.length - 1}
-                    className="disabled:opacity-30"
-                  >
+                  <SubmitButton disabled={i === images.length - 1} className="disabled:opacity-30">
                     Move down &darr;
-                  </button>
+                  </SubmitButton>
                 </form>
               </div>
               <form action={deleteGalleryImageAction.bind(null, image.id)} className="mt-2">
-                <button type="submit" className="text-xs font-medium text-stamp-red hover:underline">
+                <SubmitButton
+                  pendingLabel="Deleting..."
+                  className="text-xs font-medium text-stamp-red hover:underline"
+                >
                   Delete
-                </button>
+                </SubmitButton>
               </form>
             </div>
           ))}

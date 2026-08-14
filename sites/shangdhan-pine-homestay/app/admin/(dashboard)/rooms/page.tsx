@@ -42,12 +42,12 @@ export default async function AdminRoomsPage() {
         <form action={createRoomAction} className="mt-5 grid gap-4 sm:grid-cols-2">
           <RoomFields />
           <div className="sm:col-span-2">
-            <button
-              type="submit"
+            <SubmitButton
+              pendingLabel="Adding..."
               className="bg-charcoal px-6 py-3 text-xs font-medium uppercase tracking-[0.14em] text-warm-white hover:bg-charcoal/90"
             >
               Add room
-            </button>
+            </SubmitButton>
           </div>
         </form>
       </section>
@@ -66,12 +66,12 @@ export default async function AdminRoomsPage() {
                 </StampBadge>
               </div>
               <form action={deleteRoomAction.bind(null, room.id)}>
-                <button
-                  type="submit"
+                <SubmitButton
+                  pendingLabel="Deleting..."
                   className="text-xs font-medium uppercase tracking-[0.1em] text-stamp-red hover:underline"
                 >
                   Delete room
-                </button>
+                </SubmitButton>
               </form>
             </div>
 
@@ -81,12 +81,12 @@ export default async function AdminRoomsPage() {
             >
               <RoomFields room={room} />
               <div className="sm:col-span-2">
-                <button
-                  type="submit"
+                <SubmitButton
+                  pendingLabel="Saving..."
                   className="border border-charcoal px-6 py-2.5 text-xs font-medium uppercase tracking-[0.14em] text-charcoal hover:bg-charcoal hover:text-warm-white"
                 >
                   Save changes
-                </button>
+                </SubmitButton>
               </div>
             </form>
 
@@ -106,23 +106,22 @@ export default async function AdminRoomsPage() {
                     </div>
                     <div className="flex items-center justify-between gap-1 text-xs text-text-secondary">
                       <form action={moveRoomImageAction.bind(null, room.id, image.id, "up")}>
-                        <button type="submit" disabled={i === 0} className="disabled:opacity-30">
+                        <SubmitButton disabled={i === 0} className="disabled:opacity-30">
                           &uarr;
-                        </button>
+                        </SubmitButton>
                       </form>
                       <form action={moveRoomImageAction.bind(null, room.id, image.id, "down")}>
-                        <button
-                          type="submit"
+                        <SubmitButton
                           disabled={i === room.room_images.length - 1}
                           className="disabled:opacity-30"
                         >
                           &darr;
-                        </button>
+                        </SubmitButton>
                       </form>
                       <form action={deleteRoomImageAction.bind(null, image.id)}>
-                        <button type="submit" className="text-stamp-red hover:underline">
+                        <SubmitButton pendingLabel="Removing..." className="text-stamp-red hover:underline">
                           Remove
-                        </button>
+                        </SubmitButton>
                       </form>
                     </div>
                   </div>
@@ -147,12 +146,12 @@ export default async function AdminRoomsPage() {
                   <label className={labelClass}>Alt text (optional)</label>
                   <input name="alt_text" className={inputClass} />
                 </div>
-                <button
-                  type="submit"
+                <SubmitButton
+                  pendingLabel="Uploading..."
                   className="border border-charcoal px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-charcoal hover:bg-charcoal hover:text-warm-white"
                 >
                   Upload
-                </button>
+                </SubmitButton>
               </form>
             </div>
 

@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { property } from "@/lib/property-config";
+import { Spinner } from "../(dashboard)/_components/Spinner";
 
 const isConfigured = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -101,7 +102,14 @@ function LoginForm() {
               disabled={loading}
               className="w-full bg-charcoal px-6 py-3.5 text-xs font-medium uppercase tracking-[0.18em] text-warm-white transition-colors duration-150 ease-out hover:bg-charcoal/90 disabled:opacity-60"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? (
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  <Spinner />
+                  Signing in...
+                </span>
+              ) : (
+                "Sign in"
+              )}
             </button>
           </form>
         </div>

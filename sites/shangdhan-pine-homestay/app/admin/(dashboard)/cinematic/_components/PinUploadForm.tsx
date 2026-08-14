@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { uploadCinematicMedia } from "./uploadCinematicMedia";
+import { Spinner } from "../../_components/Spinner";
 import type { MediaActionState } from "../actions";
 
 const fileInputClass =
@@ -58,7 +59,16 @@ export function PinUploadForm({
           disabled={!selectedFile || isUploading}
           className="text-xs font-medium text-gold-ink hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isUploading ? "Uploading..." : hasExisting ? "Replace icon" : "Upload icon"}
+          {isUploading ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Spinner />
+              Uploading...
+            </span>
+          ) : hasExisting ? (
+            "Replace icon"
+          ) : (
+            "Upload icon"
+          )}
         </button>
       </div>
       {error ? <p className="text-xs font-medium text-stamp-red">{error}</p> : null}

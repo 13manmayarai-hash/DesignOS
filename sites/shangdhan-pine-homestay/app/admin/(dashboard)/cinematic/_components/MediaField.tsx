@@ -4,6 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import Image from "next/image";
 import { publicImageUrl } from "@/lib/storage";
 import { SubmitButton } from "../../_components/SubmitButton";
+import { Spinner } from "../../_components/Spinner";
 import { NumberBadge, CheckIcon, XIcon } from "./Icons";
 import { uploadCinematicMedia } from "./uploadCinematicMedia";
 import type { MediaActionState } from "../actions";
@@ -132,7 +133,16 @@ export function MediaField({
           className={fileInputClass}
         />
         <button type="button" onClick={handleUpload} disabled={!selectedFile || isUploading} className={saveButtonClass}>
-          {isUploading ? "Uploading..." : url ? "Replace" : "Upload"}
+          {isUploading ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Spinner />
+              Uploading...
+            </span>
+          ) : url ? (
+            "Replace"
+          ) : (
+            "Upload"
+          )}
         </button>
       </div>
       {uploadError ? <p className="mt-2 text-xs font-medium text-stamp-red">{uploadError}</p> : null}

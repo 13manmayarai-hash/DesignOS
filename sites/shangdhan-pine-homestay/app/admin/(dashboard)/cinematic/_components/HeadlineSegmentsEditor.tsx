@@ -16,6 +16,7 @@ import {
 import { computeWordAutoLayout, wordTransform } from "@/lib/headline-layout";
 import { FontPicker } from "../../_components/FontPicker";
 import { ColorPicker } from "../../_components/ColorPicker";
+import { Spinner } from "../../_components/Spinner";
 import { WordPositionMover } from "./WordPositionMover";
 import type { SaveHeadlineInput } from "../actions";
 
@@ -389,7 +390,14 @@ export function HeadlineSegmentsEditor({
           disabled={isPending}
           className="bg-charcoal px-6 py-2.5 text-xs font-medium uppercase tracking-[0.14em] text-warm-white hover:bg-charcoal/90 disabled:opacity-60"
         >
-          {isPending ? "Saving..." : "Save headline styling"}
+          {isPending ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Spinner />
+              Saving...
+            </span>
+          ) : (
+            "Save headline styling"
+          )}
         </button>
         {saveError ? <p className="text-xs font-medium text-stamp-red">{saveError}</p> : null}
       </div>

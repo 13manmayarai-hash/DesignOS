@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { property } from "@/lib/property-config";
 import { AdminNav } from "./_components/AdminNav";
+import { SubmitButton } from "./_components/SubmitButton";
 
 async function signOut() {
   "use server";
@@ -47,12 +48,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             View site &#8599;
           </Link>
           <form action={signOut}>
-            <button
-              type="submit"
+            <SubmitButton
+              pendingLabel="Signing out..."
               className="border border-border-default px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] text-text-secondary hover:border-text-primary hover:text-text-primary lg:w-full"
             >
               Sign out
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </aside>

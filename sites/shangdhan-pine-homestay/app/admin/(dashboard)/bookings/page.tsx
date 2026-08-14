@@ -306,14 +306,14 @@ export default async function AdminBookingsPage() {
                             !(booking.booking_compliance?.submitted_frro ?? false)
                           )}
                         >
-                          <button
-                            type="submit"
+                          <SubmitButton
+                            pendingLabel="Saving..."
                             className="text-xs font-medium uppercase tracking-[0.1em] text-text-secondary hover:text-text-primary"
                           >
                             {booking.booking_compliance?.submitted_frro
                               ? "Mark as not submitted"
                               : "Mark as submitted to FRRO"}
-                          </button>
+                          </SubmitButton>
                         </form>
                       </div>
                     ) : null}
@@ -385,12 +385,12 @@ export default async function AdminBookingsPage() {
                       </option>
                     ))}
                   </select>
-                  <button
-                    type="submit"
+                  <SubmitButton
+                    pendingLabel="Updating..."
                     className="border border-charcoal/25 px-4 py-2 text-xs font-medium uppercase tracking-[0.1em] text-text-primary hover:border-charcoal/50"
                   >
                     Update
-                  </button>
+                  </SubmitButton>
                 </form>
               </div>
             );

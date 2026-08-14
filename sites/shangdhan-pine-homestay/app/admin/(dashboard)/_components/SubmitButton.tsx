@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useFormStatus } from "react-dom";
+import { Spinner } from "./Spinner";
 
 // useFormStatus only reports the status of the nearest enclosing <form>,
 // so this must render inside one -- it reads pending state from React
@@ -32,10 +33,7 @@ export function SubmitButton({
     >
       {pending ? (
         <span className="inline-flex items-center gap-1.5">
-          <span
-            className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"
-            aria-hidden="true"
-          />
+          <Spinner />
           {pendingLabel}
         </span>
       ) : (
