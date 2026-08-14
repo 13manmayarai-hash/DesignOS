@@ -4,6 +4,12 @@ import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import styles from "./CinematicHero.module.css";
 import { FONT_CHOICES, googleFontsStylesheetUrl, type TextCase } from "@/lib/fonts";
+import {
+  computeWordAutoLayout,
+  wordTransform,
+  LAYER_Z_INDEX,
+  type HeadlineLayer,
+} from "@/lib/headline-layout";
 
 export type CinematicHeroContent = {
   skyImageUrl: string | null;
@@ -43,17 +49,7 @@ export type CinematicHeadlineSegment = {
   sizeMultiplier: number;
   offsetX: number;
   offsetY: number;
-  layer: "behind" | "normal" | "front";
-};
-
-// Behind sits under the mid-ground/glow layers (z 1-2), normal matches the
-// plain headline's old z=3, front clears the split-frame/bridge/frame-two
-// imagery (z up to 6) but stays under the intro copy and story panels (z
-// 9-10) so a word can never cover interactive UI.
-const LAYER_Z_INDEX: Record<CinematicHeadlineSegment["layer"], number> = {
-  behind: 1,
-  normal: 3,
-  front: 7,
+  layer: HeadlineLayer;
 };
 
 // ---- easing helpers, ported verbatim from the scroll-choreography spec ----
@@ -105,36 +101,10 @@ export function CinematicHero({
     return FONT_CHOICES.filter((f) => chosenIds.has(f.id));
   }, [headlineSegments]);
 
-  // Each word is independently positioned (see the comment on
-  // .hero-title-word in the CSS module for why it can't be a shared flex
-  // row), so there's no browser layout to fall back on for the reading
-  // order. This estimates each word's width from its character count to
-  // lay them out left-to-right by default -- rough (no real font metrics),
-  // but it's just a starting point the admin's own offsetX/offsetY nudge
-  // on top of.
-  const wordsWithAutoLayout = useMemo(() => {
-    const GAP_EM = 0.28;
-    const widths = headlineSegments.map(
-      (s) => Math.max(s.text.length, 1) * 0.58 * s.sizeMultiplier
-    );
-    const totalEm =
-      widths.reduce((sum, w) => sum + w, 0) + GAP_EM * Math.max(headlineSegments.length - 1, 0);
-
-    const { rows } = headlineSegments.reduce<{
-      cursorEm: number;
-      rows: { segment: CinematicHeadlineSegment; autoXem: number }[];
-    }>(
-      (acc, segment, i) => {
-        const centerEm = acc.cursorEm + widths[i] / 2;
-        return {
-          cursorEm: acc.cursorEm + widths[i] + GAP_EM,
-          rows: [...acc.rows, { segment, autoXem: centerEm }],
-        };
-      },
-      { cursorEm: -totalEm / 2, rows: [] }
-    );
-    return rows;
-  }, [headlineSegments]);
+  const wordsWithAutoLayout = useMemo(
+    () => computeWordAutoLayout(headlineSegments),
+    [headlineSegments]
+  );
 
   // Three identical sets back to back, so the slider can loop seamlessly --
   // start in the middle set and jump a whole set backward/forward whenever
@@ -498,14 +468,14 @@ export function CinematicHero({
                       fontFamily: font ? `'${font.fontFamily}', var(--font-display)` : undefined,
                       textTransform: segment.textCase === "none" ? undefined : segment.textCase,
                       color: segment.color || headlineThemeColor || undefined,
-                      // offsetX/offsetY are in em (relative to this word's
-                      // own font-size, same unit the auto-layout above
-                      // uses) rather than px -- the headline's font-size
-                      // swings from 14rem down to 4.5rem across the
-                      // responsive breakpoints in the CSS module, and a
-                      // fixed px nudge would go from subtle to wildly
-                      // oversized between those. em keeps it proportional.
-                      transform: `translate3d(calc(-50% + ${autoXem + segment.offsetX}em), calc(var(--title-y) + ${segment.offsetY}em), 0) scale(calc(var(--title-scale) * ${segment.sizeMultiplier}))`,
+                      transform: wordTransform(
+                        autoXem,
+                        segment.offsetX,
+                        segment.offsetY,
+                        segment.sizeMultiplier,
+                        "var(--title-y)",
+                        "var(--title-scale)"
+                      ),
                       zIndex: LAYER_Z_INDEX[segment.layer],
                     }}
                   >

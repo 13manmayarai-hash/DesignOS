@@ -10,12 +10,10 @@ import {
   deleteSightCard,
   moveSightCard,
   setSightCardPinIcon,
-  updateHeadlineSegment,
-  deleteHeadlineSegment,
-  moveHeadlineSegment,
-  setHeadlineSegmentCount,
+  replaceHeadlineSegments,
   type CinematicHero,
   type HeadlineLayer,
+  type HeadlineSegmentSave,
 } from "@/lib/data/cinematic";
 import { randomStoragePath } from "@/lib/storage";
 import { TEXT_CASE_OPTIONS, type TextCase } from "@/lib/fonts";
@@ -229,70 +227,41 @@ export async function uploadSightCardPinAction(id: string, formData: FormData) {
   revalidateCinematic();
 }
 
-// Word-by-word headline styling: a theme color, a word-count control that
-// grows/shrinks the segment list, and per-segment font/size/case/color/
-// position/layer.
+// Word-by-word headline styling. The editor (a client component) manages
+// the whole word list locally -- typing into the headline field adds or
+// removes a word's settings card automatically -- so this is one
+// consolidated save rather than per-word actions: replace the segment
+// list and the theme color together in a single call from the editor,
+// not a <form action>.
 const VALID_TEXT_CASES = new Set(TEXT_CASE_OPTIONS.map((o) => o.value));
 const VALID_LAYERS = new Set<HeadlineLayer>(["behind", "normal", "front"]);
 
-export async function updateHeadlineThemeColorAction(formData: FormData) {
-  await requireUser();
-  const supabase = await createClient();
-  const color = String(formData.get("headlineThemeColor") ?? "").trim() || null;
-  await updateCinematicHero(supabase, { headline_theme_color: color });
-  revalidateCinematic();
-}
+export type SaveHeadlineInput = {
+  themeColor: string | null;
+  segments: HeadlineSegmentSave[];
+};
 
-export async function setHeadlineSegmentCountAction(formData: FormData) {
-  await requireUser();
-  const supabase = await createClient();
-  const count = Number(formData.get("wordCount"));
-  if (!Number.isFinite(count)) throw new Error("Enter a number of words");
-  await setHeadlineSegmentCount(supabase, count);
-  revalidateCinematic();
-}
-
-export async function updateHeadlineSegmentAction(id: string, formData: FormData) {
+export async function saveHeadlineAction(input: SaveHeadlineInput) {
   await requireUser();
   const supabase = await createClient();
 
-  const textCaseRaw = String(formData.get("textCase") ?? "none");
-  const textCase: TextCase = VALID_TEXT_CASES.has(textCaseRaw as TextCase)
-    ? (textCaseRaw as TextCase)
-    : "none";
-  const layerRaw = String(formData.get("layer") ?? "normal");
-  const layer: HeadlineLayer = VALID_LAYERS.has(layerRaw as HeadlineLayer)
-    ? (layerRaw as HeadlineLayer)
-    : "normal";
-  const sizeMultiplier = Number(formData.get("sizeMultiplier"));
-  const offsetX = Number(formData.get("offsetX"));
-  const offsetY = Number(formData.get("offsetY"));
+  const segments: HeadlineSegmentSave[] = input.segments
+    .map((s) => ({
+      id: s.id,
+      text: String(s.text ?? "").trim(),
+      fontChoice: s.fontChoice ? String(s.fontChoice) : null,
+      textCase: VALID_TEXT_CASES.has(s.textCase) ? s.textCase : ("none" as TextCase),
+      color: s.color ? String(s.color) : null,
+      sizeMultiplier: Number.isFinite(s.sizeMultiplier) ? s.sizeMultiplier : 1,
+      offsetX: Number.isFinite(s.offsetX) ? s.offsetX : 0,
+      offsetY: Number.isFinite(s.offsetY) ? s.offsetY : 0,
+      layer: VALID_LAYERS.has(s.layer) ? s.layer : "normal",
+    }))
+    .filter((s) => s.text.length > 0);
 
-  const useThemeColor = formData.get("useThemeColor") === "on";
+  await updateCinematicHero(supabase, { headline_theme_color: input.themeColor });
+  const saved = await replaceHeadlineSegments(supabase, segments);
 
-  await updateHeadlineSegment(supabase, id, {
-    text: String(formData.get("text") ?? ""),
-    fontChoice: String(formData.get("fontChoice") ?? "").trim() || null,
-    textCase,
-    color: useThemeColor ? null : String(formData.get("color") ?? "").trim() || null,
-    sizeMultiplier: Number.isFinite(sizeMultiplier) ? sizeMultiplier : 1,
-    offsetX: Number.isFinite(offsetX) ? offsetX : 0,
-    offsetY: Number.isFinite(offsetY) ? offsetY : 0,
-    layer,
-  });
   revalidateCinematic();
-}
-
-export async function deleteHeadlineSegmentAction(id: string) {
-  await requireUser();
-  const supabase = await createClient();
-  await deleteHeadlineSegment(supabase, id);
-  revalidateCinematic();
-}
-
-export async function moveHeadlineSegmentAction(id: string, direction: "up" | "down") {
-  await requireUser();
-  const supabase = await createClient();
-  await moveHeadlineSegment(supabase, id, direction);
-  revalidateCinematic();
+  return saved;
 }

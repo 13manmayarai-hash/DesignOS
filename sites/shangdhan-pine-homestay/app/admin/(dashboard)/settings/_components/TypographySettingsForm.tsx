@@ -3,6 +3,7 @@
 import { useState, type CSSProperties } from "react";
 import { FONT_CHOICES, TEXT_CASE_OPTIONS, googleFontsStylesheetUrl, type TextCase } from "@/lib/fonts";
 import { SubmitButton } from "../../_components/SubmitButton";
+import { FontPicker } from "../../_components/FontPicker";
 
 const inputClass =
   "mt-1.5 w-full max-w-sm border border-border-default bg-warm-white px-3 py-2 text-sm text-text-primary outline-none focus:border-gold-ink";
@@ -54,44 +55,9 @@ export function TypographySettingsForm({
       <form action={action} className="mt-5 space-y-6">
         <div>
           <p className={labelClass}>Display font</p>
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            {FONT_CHOICES.map((f) => (
-              <label
-                key={f.id}
-                className={`cursor-pointer border px-4 py-3 text-lg leading-tight text-text-primary transition-colors ${
-                  fontChoice === f.id ? "border-charcoal bg-sand/20" : "border-border-default hover:border-sand-dark"
-                }`}
-                style={{ fontFamily: `'${f.fontFamily}', system-ui, sans-serif` }}
-              >
-                <input
-                  type="radio"
-                  name="displayFontChoice"
-                  value={f.id}
-                  checked={fontChoice === f.id}
-                  onChange={() => setFontChoice(f.id)}
-                  className="sr-only"
-                />
-                {f.label}
-              </label>
-            ))}
-            {customFontFamily ? (
-              <label
-                className={`cursor-pointer border px-4 py-3 text-lg leading-tight text-text-primary transition-colors ${
-                  fontChoice === "custom" ? "border-charcoal bg-sand/20" : "border-border-default hover:border-sand-dark"
-                }`}
-                style={{ fontFamily: `'${customFontFamily}', system-ui, sans-serif` }}
-              >
-                <input
-                  type="radio"
-                  name="displayFontChoice"
-                  value="custom"
-                  checked={fontChoice === "custom"}
-                  onChange={() => setFontChoice("custom")}
-                  className="sr-only"
-                />
-                Your uploaded font
-              </label>
-            ) : null}
+          <input type="hidden" name="displayFontChoice" value={fontChoice} />
+          <div className="mt-2">
+            <FontPicker value={fontChoice} onChange={setFontChoice} customFontFamily={customFontFamily} />
           </div>
         </div>
 
